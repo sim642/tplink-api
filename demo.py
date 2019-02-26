@@ -5,7 +5,33 @@ import lxml.html
 import json
 import iterutil
 
+from typing import NamedTuple
+
 dotenv.load_dotenv()
+
+
+class StatsEntry(NamedTuple):
+    id: int
+    ip: str
+    mac: str
+    packets_total: int
+    bytes_total: int
+    packets_per_sec: int
+    bytes_per_sec: int
+    icmp_per_sec: int
+    icmp_per_sec_max: int
+    udp_per_sec: int
+    udp_per_sec_max: int
+    tcp_syn_per_sec: int
+    tcp_syn_per_sec_max: int
+
+
+class DHCPEntry(NamedTuple):
+    hostname: str
+    mac: str
+    ip: str
+    lease_time: str
+
 
 s = requests_toolbelt.sessions.BaseUrlSession(base_url="http://" + os.getenv("TPLINK_ADDRESS"))
 s.auth = (os.getenv("TPLINK_USERNAME"), os.getenv("TPLINK_PASSWORD"))
@@ -18,7 +44,8 @@ stat_json = stat_script.replace("var statList = new Array(", "[").replace(");", 
 stat_list = json.loads(stat_json)
 
 for row in iterutil.group(stat_list, 13):
-    print(row)
+    entry = StatsEntry(*row)
+    print(entry)
 
 
 r = s.get("/userRpm/AssignedIpAddrListRpm.htm")
@@ -29,4 +56,5 @@ dhcp_json = dhcp_script.replace("var DHCPDynList = new Array(", "[").replace(");
 dhcp_list = json.loads(dhcp_json)
 
 for row in iterutil.group(dhcp_list, 4):
-    print(row)
+    entry = DHCPEntry(*row)
+    print(entry)
