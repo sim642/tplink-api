@@ -5,7 +5,7 @@ import lxml.html
 import json
 import iterutil
 
-from typing import NamedTuple
+from typing import NamedTuple, List
 
 dotenv.load_dotenv()
 
@@ -33,26 +33,34 @@ class DHCPEntry(NamedTuple):
     lease_time: str
 
 
-s = requests_toolbelt.sessions.BaseUrlSession(base_url="http://" + os.getenv("TPLINK_ADDRESS"))
-s.auth = (os.getenv("TPLINK_USERNAME"), os.getenv("TPLINK_PASSWORD"))
+class TpLinkApi:
+    def __init__(self, address, username, password) -> None:
+        super().__init__()
+
+        self.session = requests_toolbelt.sessions.BaseUrlSession(base_url="http://" + address)
+        self.session.auth = (username, password)
+
+    def get_list(self, url, list_name, params=None):
+        if params is None:
+            params = {}
+        r = self.session.get(url, params=params)
+        root = lxml.html.fromstring(r.content)
+        script = root.xpath("//script")[0].text
+        list_json = script.replace("var {} = new Array(".format(list_name), "[").replace(");", "]")
+        return json.loads(list_json)
+
+    @staticmethod
+    def list_to_entries(iterable, n, typ):
+        return [typ(*row) for row in iterutil.group(iterable, n)]
+
+    def get_stats(self) -> List[StatsEntry]:
+        return self.list_to_entries(self.get_list("/userRpm/SystemStatisticRpm.htm", "statList", params={"Num_per_page": 100}), 13, StatsEntry)
+
+    def get_dhcp(self) -> List[DHCPEntry]:
+        return self.list_to_entries(self.get_list("/userRpm/AssignedIpAddrListRpm.htm", "DHCPDynList"), 4, DHCPEntry)
 
 
-def tplink_get_list(url, list_name, params=None):
-    if params is None:
-        params = {}
-    r = s.get(url, params=params)
-    root = lxml.html.fromstring(r.content)
-    script = root.xpath("//script")[0].text
-    list_json = script.replace("var {} = new Array(".format(list_name), "[").replace(");", "]")
-    return json.loads(list_json)
+tplink = TpLinkApi(os.getenv("TPLINK_ADDRESS"), os.getenv("TPLINK_USERNAME"), os.getenv("TPLINK_PASSWORD"))
 
-
-def list_to_entries(list, n, typ):
-    return [typ(*row) for row in iterutil.group(list, n)]
-
-
-stat_entries = list_to_entries(tplink_get_list("/userRpm/SystemStatisticRpm.htm", "statList", params={"Num_per_page": 100}), 13, StatsEntry)
-print(stat_entries)
-
-dhcp_entries = list_to_entries(tplink_get_list("/userRpm/AssignedIpAddrListRpm.htm", "DHCPDynList"), 4, DHCPEntry)
-print(dhcp_entries)
+print(tplink.get_stats())
+print(tplink.get_dhcp())
