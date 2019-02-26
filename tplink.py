@@ -50,8 +50,8 @@ class TpLinkApi:
     def list_to_entries(iterable, n, typ):
         return [typ(*row) for row in iterutil.group(iterable, n)]
 
-    def get_stats(self, interval) -> List[StatsEntry]:
-        return self.list_to_entries(self.get_list("/userRpm/SystemStatisticRpm.htm", "statList", params={"interval": interval, "Num_per_page": 100}), 13, StatsEntry)
+    def get_stats(self, interval, n=20) -> List[StatsEntry]:
+        return self.list_to_entries(self.get_list("/userRpm/SystemStatisticRpm.htm", "statList", params={"interval": interval, "Num_per_page": n}), 13, StatsEntry)
 
     def get_dhcp(self) -> List[DHCPEntry]:
         return self.list_to_entries(self.get_list("/userRpm/AssignedIpAddrListRpm.htm", "DHCPDynList"), 4, DHCPEntry)
