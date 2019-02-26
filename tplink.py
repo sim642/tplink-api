@@ -43,15 +43,15 @@ class TpLinkApi:
         r = self.session.get(url, params=params)
         root = lxml.html.fromstring(r.content)
         script = root.xpath("//script")[0].text
-        list_json = script.replace("var {} = new Array(".format(list_name), "[").replace(");", "]")
+        list_json = script.replace(f"var {list_name} = new Array(", "[").replace(");", "]")
         return json.loads(list_json)
 
     @staticmethod
     def list_to_entries(iterable, n, typ):
         return [typ(*row) for row in iterutil.group(iterable, n)]
 
-    def get_stats(self) -> List[StatsEntry]:
-        return self.list_to_entries(self.get_list("/userRpm/SystemStatisticRpm.htm", "statList", params={"Num_per_page": 100}), 13, StatsEntry)
+    def get_stats(self, interval) -> List[StatsEntry]:
+        return self.list_to_entries(self.get_list("/userRpm/SystemStatisticRpm.htm", "statList", params={"interval": interval, "Num_per_page": 100}), 13, StatsEntry)
 
     def get_dhcp(self) -> List[DHCPEntry]:
         return self.list_to_entries(self.get_list("/userRpm/AssignedIpAddrListRpm.htm", "DHCPDynList"), 4, DHCPEntry)
