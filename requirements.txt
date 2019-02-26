@@ -1,0 +1,4 @@
+requests
+requests-toolbelt
+lxml
+python-dotenv
