@@ -36,25 +36,23 @@ class DHCPEntry(NamedTuple):
 s = requests_toolbelt.sessions.BaseUrlSession(base_url="http://" + os.getenv("TPLINK_ADDRESS"))
 s.auth = (os.getenv("TPLINK_USERNAME"), os.getenv("TPLINK_PASSWORD"))
 
-r = s.get("/userRpm/SystemStatisticRpm.htm", params={"Num_per_page": 100})
-root = lxml.html.fromstring(r.content)
 
-stat_script = root.xpath("//script")[0].text
-stat_json = stat_script.replace("var statList = new Array(", "[").replace(");", "]")
-stat_list = json.loads(stat_json)
+def tplink_get_list(url, list_name, params=None):
+    if params is None:
+        params = {}
+    r = s.get(url, params=params)
+    root = lxml.html.fromstring(r.content)
+    script = root.xpath("//script")[0].text
+    list_json = script.replace("var {} = new Array(".format(list_name), "[").replace(");", "]")
+    return json.loads(list_json)
 
-for row in iterutil.group(stat_list, 13):
-    entry = StatsEntry(*row)
-    print(entry)
+
+def list_to_entries(list, n, typ):
+    return [typ(*row) for row in iterutil.group(list, n)]
 
 
-r = s.get("/userRpm/AssignedIpAddrListRpm.htm")
-root = lxml.html.fromstring(r.content)
+stat_entries = list_to_entries(tplink_get_list("/userRpm/SystemStatisticRpm.htm", "statList", params={"Num_per_page": 100}), 13, StatsEntry)
+print(stat_entries)
 
-dhcp_script = root.xpath("//script")[0].text
-dhcp_json = dhcp_script.replace("var DHCPDynList = new Array(", "[").replace(");", "]")
-dhcp_list = json.loads(dhcp_json)
-
-for row in iterutil.group(dhcp_list, 4):
-    entry = DHCPEntry(*row)
-    print(entry)
+dhcp_entries = list_to_entries(tplink_get_list("/userRpm/AssignedIpAddrListRpm.htm", "DHCPDynList"), 4, DHCPEntry)
+print(dhcp_entries)
