@@ -3,6 +3,7 @@ import os
 import requests_toolbelt.sessions
 import lxml.html
 import json
+import iterutil
 
 dotenv.load_dotenv()
 
@@ -16,13 +17,7 @@ stat_script = root.xpath("//script")[0].text
 stat_json = stat_script.replace("var statList = new Array(", "[").replace(");", "]")
 stat_list = json.loads(stat_json)
 
-
-def grouper(iterable, n):
-    args = [iter(iterable)] * n
-    return zip(*args)
-
-
-for row in grouper(stat_list, 13):
+for row in iterutil.group(stat_list, 13):
     print(row)
 
 
@@ -33,5 +28,5 @@ dhcp_script = root.xpath("//script")[0].text
 dhcp_json = dhcp_script.replace("var DHCPDynList = new Array(", "[").replace(");", "]")
 dhcp_list = json.loads(dhcp_json)
 
-for row in grouper(dhcp_list, 4):
+for row in iterutil.group(dhcp_list, 4):
     print(row)
