@@ -2,6 +2,7 @@ import math
 
 import dotenv
 import os
+import sqlite3
 
 from tplink import TpLinkApi
 
@@ -21,6 +22,14 @@ def format_bytes(b):
     return f"{round(b / 1024 ** i * 100) / 100} {units[i]}"
 
 
+conn = sqlite3.connect("demo.sqlite")
+
 for entry in sorted(stats, key=lambda entry: entry.ip):
     hostname = hostnames.get(entry.ip)
     print(f"{entry.ip} ({hostname}): {format_bytes(entry.bytes_total)} {format_bytes(entry.bytes_per_sec)}/s")
+
+    if hostname:
+        conn.execute(r"INSERT INTO demo(datetime, hostname, bytes) VALUES (datetime('now'), ?, ?)", (hostname, entry.bytes_total))
+
+conn.commit()
+conn.close()
