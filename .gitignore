@@ -5,3 +5,6 @@
 
 bin/
 lib/
+
+rrds/
+graphs/
