@@ -39,31 +39,39 @@ def update_rrd(hostname, bytes_total):
     filename = get_rrd(hostname)
     rrdtool.update(filename, f"N:{bytes_total}")
 
-def graph_rrd(hostname):
-    rrd_filename = get_rrd(hostname)
-    graph_filename = f"graphs/{hostname}.png"
+graphs = [
+    "-3000",
+    "-21000",
+    "-93000",
+    # "-1147680",
+]
 
-    # TODO: graphs for other durations
-    rrdtool.graph(
-        graph_filename,
-        "--start", "-3000",  # TODO: proper beginning time
-        "--title", hostname,
-        "--vertical-label", "bps",
-        "--disable-rrdtool-tag",
-        "--slope-mode",
-        f"DEF:avgbytes={rrd_filename}:bytes:AVERAGE",
-        f"DEF:maxbytes={rrd_filename}:bytes:MAX",
-        "CDEF:avgbits=avgbytes,8,*",
-        "CDEF:maxbits=maxbytes,8,*",
-        "VDEF:totalavgbits=avgbits,AVERAGE",
-        "VDEF:totalmaxbits=maxbits,MAXIMUM",
-        "AREA:avgbits#00FF00:Average",
-        # "GPRINT:totalavgbits:Average\\: %.1lf %sbps",
-        "GPRINT:totalavgbits:%.1lf %sbps",
-        "LINE1:maxbits#FF0000:Max",
-        # "GPRINT:totalmaxbits:Max\\: %.1lf %sbps",
-        "GPRINT:totalmaxbits:%.1lf %sbps",
-    )
+def graph_rrd(hostname, entry):
+    rrd_filename = get_rrd(hostname)
+
+    for i, start in enumerate(graphs):
+        graph_filename = f"graphs/{hostname}-{i}.png"
+
+        rrdtool.graph(
+            graph_filename,
+            "--start", start,  # TODO: proper beginning time
+            "--title", f"{hostname} ({entry.ip})",
+            "--vertical-label", "bps",
+            "--disable-rrdtool-tag",
+            "--slope-mode",
+            f"DEF:avgbytes={rrd_filename}:bytes:AVERAGE",
+            f"DEF:maxbytes={rrd_filename}:bytes:MAX",
+            "CDEF:avgbits=avgbytes,8,*",
+            "CDEF:maxbits=maxbytes,8,*",
+            "VDEF:totalavgbits=avgbits,AVERAGE",
+            "VDEF:totalmaxbits=maxbits,MAXIMUM",
+            "AREA:avgbits#00FF00:Average",
+            # "GPRINT:totalavgbits:Average\\: %.1lf %sbps",
+            "GPRINT:totalavgbits:%.1lf %sbps",
+            "LINE1:maxbits#FF0000:Max",
+            # "GPRINT:totalmaxbits:Max\\: %.1lf %sbps",
+            "GPRINT:totalmaxbits:%.1lf %sbps",
+        )
 
 def graphs_index(hostnames, stats):
     with open("graphs/index.html", "w") as index_file:
@@ -79,9 +87,12 @@ def graphs_index(hostnames, stats):
         for entry in sorted(stats, key=lambda entry: entry.ip):
             hostname = hostnames.get(entry.ip)
             if hostname:
-                index_file.write(
-                    f"<img src=\"{hostname}.png\" />"
-                )
+                for i in reversed(range(len(graphs))):
+                    index_file.write(
+                        f"<img src=\"{hostname}-{i}.png\" />"
+                    )
+
+                index_file.write("<br />")
 
         index_file.write(
 """</body>
@@ -110,7 +121,7 @@ while True:
 
         if hostname:
             update_rrd(hostname, entry.bytes_total)
-            graph_rrd(hostname)
+            graph_rrd(hostname, entry)
 
     graphs_index(hostnames, stats)
 
