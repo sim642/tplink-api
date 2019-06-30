@@ -47,7 +47,7 @@ t.start()
 
 @app.route("/")
 def index():
-    return render_template("graphs.html", sorted_hostnames=get_sorted_hostnames(), starts=rrds.starts)
+    return render_template("graphs-flask.html", sorted_hostnames=get_sorted_hostnames(), starts=rrds.starts)
 
 
 @app.route("/graph/<string:hostname>/<int:start>")

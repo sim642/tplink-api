@@ -1,10 +1,10 @@
 {% extends "graphs.html" %}
 {% block title %}
-    static
+    flask
 {% endblock %}
 {% block graph_stack %}
-    <img src="stack-{{ start }}.png"/>
+    <img src="graph-stack/{{ start }}"/>
 {% endblock %}
 {% block graph %}
-    <img src="{{ hostname }}-{{ start }}.png"/>
+    <img src="graph/{{ hostname }}/{{ start }}"/>
 {% endblock %}
