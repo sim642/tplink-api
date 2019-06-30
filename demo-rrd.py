@@ -4,6 +4,7 @@ import dotenv
 import os
 import rrdtool
 import time
+import colorsys
 
 from tplink import TpLinkApi
 
@@ -73,7 +74,55 @@ def graph_rrd(hostname, entry):
             # "GPRINT:totalmaxbits:Max\\: %.1lf %sbps",
             "GPRINT:totalmaxbits:%.1lf %sbps",
             "COMMENT:Current",
-            "GPRINT:totallastbits:%.1lf %sbps",
+            "GPRINT:totallastbits:%.1lf %sbps\\n",
+        )
+
+def graph_rrd_stack(hostnames, stats):
+    def color(j):
+        # https://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
+        h, s, v = (0.618033988749895 * j) % 1, 1, 1
+        r, g, b = colorsys.hsv_to_rgb(h, s, v)
+        return f"#{int(r * 255):02X}{int(g * 255):02X}{int(b * 255):02X}"
+
+    for i, start in enumerate(graphs):
+        graph_filename = f"graphs/stack-{i}.png"
+
+        args = []
+        j = 0
+        for entry in sorted(stats, key=lambda entry: entry.ip):
+            hostname = hostnames.get(entry.ip)
+            if hostname:
+                args += [
+                    f"DEF:avgbytes{j}={get_rrd(hostname)}:bytes:AVERAGE",
+                    f"DEF:maxbytes{j}={get_rrd(hostname)}:bytes:MAX",
+                    f"CDEF:avgbits{j}=avgbytes{j},8,*",
+                    f"CDEF:maxbits{j}=maxbytes{j},8,*",
+                    f"VDEF:totalavgbits{j}=avgbits{j},AVERAGE",
+                    f"VDEF:totalmaxbits{j}=maxbits{j},MAXIMUM",
+                    f"VDEF:totallastbits{j}=avgbits{j},LAST",
+                    f"AREA:avgbits{j}{color(j)}:{hostname: <16}:STACK",
+                    # f"GPRINT:totalavgbits{j}:Average\\: %5.1lf %sbps",
+                    # f"GPRINT:totallastbits{j}:Current\\: %5.1lf %sbps\\n",
+                    f"GPRINT:totalavgbits{j}:%7.1lf %sbps",
+                    f"GPRINT:totalmaxbits{j}:%7.1lf %sbps",
+                    f"GPRINT:totallastbits{j}:%7.1lf %sbps\\n",
+                ]
+
+                j += 1
+
+        rrdtool.graph(
+            graph_filename,
+            "--start", start,  # TODO: proper beginning time
+            # "--title", f"{hostname} ({entry.ip})",
+            "--vertical-label", "bps",
+            "--disable-rrdtool-tag",
+            "--slope-mode",
+            "--height", "150", # default is 100
+            f"COMMENT:{'': <18}",
+            f"COMMENT:{'Average': ^12}",
+            f"COMMENT:{'Max': ^12}",
+            f"COMMENT:{'Current': ^12}\\n",
+            *args
         )
 
 def graphs_index(hostnames, stats):
@@ -86,6 +135,13 @@ def graphs_index(hostnames, stats):
     <meta http-equiv="refresh" content="5">
 </head>
 <body>""")
+
+        for i in reversed(range(len(graphs))):
+            index_file.write(
+                f"<img src=\"stack-{i}.png\" />"
+            )
+
+        index_file.write("<hr />")
 
         for entry in sorted(stats, key=lambda entry: entry.ip):
             hostname = hostnames.get(entry.ip)
@@ -126,6 +182,7 @@ while True:
             update_rrd(hostname, entry.bytes_total)
             graph_rrd(hostname, entry)
 
+    graph_rrd_stack(hostnames, stats)
     graphs_index(hostnames, stats)
 
     time.sleep(5)  # TODO: long interval
