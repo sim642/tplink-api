@@ -1,5 +1,6 @@
 import json
 from typing import NamedTuple, List
+import os
 
 import lxml.html
 import requests_toolbelt.sessions
@@ -36,6 +37,14 @@ class TpLinkApi:
 
         self.session = requests_toolbelt.sessions.BaseUrlSession(base_url="http://" + address)
         self.session.auth = (username, password)
+
+    @staticmethod
+    def from_env():
+        return TpLinkApi(
+            os.getenv("TPLINK_ADDRESS"),
+            os.getenv("TPLINK_USERNAME"),
+            os.getenv("TPLINK_PASSWORD")
+        )
 
     def get_list(self, url, list_name, params=None):
         if params is None:

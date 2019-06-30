@@ -57,7 +57,7 @@ def graphs_index(hostnames, stats):
     template.stream(sorted_hostnames=sorted_hostnames, starts=rrds.starts).dump("graphs/index.html")
 
 
-tplink = TpLinkApi(os.getenv("TPLINK_ADDRESS"), os.getenv("TPLINK_USERNAME"), os.getenv("TPLINK_PASSWORD"))
+tplink = TpLinkApi.from_env()
 
 
 while True:

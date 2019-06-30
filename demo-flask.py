@@ -1,5 +1,4 @@
 import io
-import os
 import threading
 import time
 
@@ -14,7 +13,7 @@ dotenv.load_dotenv()
 
 app = Flask(__name__)
 
-tplink = TpLinkApi(os.getenv("TPLINK_ADDRESS"), os.getenv("TPLINK_USERNAME"), os.getenv("TPLINK_PASSWORD"))
+tplink = TpLinkApi.from_env()
 
 stats = None
 hostnames = None

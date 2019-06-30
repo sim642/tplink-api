@@ -1,7 +1,6 @@
 import math
 
 import dotenv
-import os
 import sqlite3
 
 from tplink import TpLinkApi
@@ -9,7 +8,7 @@ from tplink import TpLinkApi
 dotenv.load_dotenv()
 
 
-tplink = TpLinkApi(os.getenv("TPLINK_ADDRESS"), os.getenv("TPLINK_USERNAME"), os.getenv("TPLINK_PASSWORD"))
+tplink = TpLinkApi.from_env()
 
 stats = tplink.get_stats(5)
 dhcp = tplink.get_dhcp()
