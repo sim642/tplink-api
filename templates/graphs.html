@@ -3,21 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <title>tplink-api graphs - {% block title %}{% endblock %}</title>
-{#    <meta http-equiv="refresh" content="5"/>#}
+    <meta http-equiv="refresh" content="5"/>
+
+    <style>
+        .sticky-header th {
+            position: sticky;
+            top: 0;
+        }
+    </style>
 </head>
 <body>
-{% for start in starts|reverse %}
-    {% block graph_stack scoped %}
-    {% endblock %}
-{% endfor %}
-<hr/>
 
-{% for hostname in sorted_hostnames %}
-    {% for start in starts|reverse %}
-        {% block graph scoped %}
-        {% endblock %}
-    {% endfor %}
-    <br/>
-{% endfor %}
+<table>
+    <thead class="sticky-header">
+        <tr>
+            {% for start in starts|reverse %}
+                <th>
+                    {% block graph_stack scoped %}
+                    {% endblock %}
+                </th>
+            {% endfor %}
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for hostname in sorted_hostnames %}
+            <tr>
+                {% for start in starts|reverse %}
+                    <td>
+                        {% block graph scoped %}
+                        {% endblock %}
+                    </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
 </body>
 </html>
