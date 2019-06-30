@@ -12,3 +12,8 @@ def graph_return(*args):
 def graph_file(filename, *args):
     with rrdtool_lock:
         rrdtool.graph(filename, *args)
+
+
+def create(filename, *args):
+    with rrdtool_lock:
+        rrdtool.create(filename, *args)

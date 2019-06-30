@@ -1,4 +1,6 @@
 import colorutil
+import os
+import rrdtool_wrapper
 
 HOSTNAME_WIDTH = 16
 
@@ -9,6 +11,23 @@ def ellipsize(s, length):
 
 def hostname_rrd(hostname):
     filename = f"rrds/{hostname}.rrd"
+
+    if not os.path.isfile(filename):
+        rrdtool_wrapper.create(
+            filename,
+            "--start", "now",
+            "--step", "5",  # TODO: 5 minutes (300s) instead of 5 seconds
+            "DS:bytes:COUNTER:10:U:U",  # TODO: 10 minutes (600s) instead of 10 seconds
+            "RRA:AVERAGE:0.5:1:600",
+            "RRA:AVERAGE:0.5:6:700",
+            "RRA:AVERAGE:0.5:24:775",
+            "RRA:AVERAGE:0.5:288:797",
+            "RRA:MAX:0.5:1:600",
+            "RRA:MAX:0.5:6:700",
+            "RRA:MAX:0.5:24:775",
+            "RRA:MAX:0.5:288:797",
+        )
+
     return filename
 
 
