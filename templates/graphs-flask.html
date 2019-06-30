@@ -3,8 +3,8 @@
     flask
 {% endblock %}
 {% block graph_stack %}
-    <img src="graph-stack/{{ start }}"/>
+    <img src="{{ url_for('graph_rrd_stack', start=start) }}"/>
 {% endblock %}
 {% block graph %}
-    <img src="graph/{{ hostname }}/{{ start }}"/>
+    <img src="{{ url_for('graph_rrd', hostname=hostname, start=start) }}"/>
 {% endblock %}
