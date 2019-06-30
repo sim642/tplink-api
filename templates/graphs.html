@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>tplink-api flask graphs</title>
+{#    <meta http-equiv="refresh" content="5">#}
+</head>
+<body>
+{% for start in starts|reverse %}
+    <img src="graph-stack/{{ start }}"/>
+{% endfor %}
+<hr/>
+
+{% for entry in stats|sort(attribute='ip') %}
+    {% set hostname = hostnames.get(entry.ip) %}
+    {% if hostname %}
+        {% for start in starts|reverse %}
+            <img src="graph/{{ hostname }}/{{ start }}"/>
+        {% endfor %}
+        <br/>
+    {% endif %}
+{% endfor %}
+</body>
+</html>
