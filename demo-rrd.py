@@ -100,7 +100,7 @@ def graph_rrd_stack(hostnames, stats):
                     f"VDEF:totalavgbits{j}=avgbits{j},AVERAGE",
                     f"VDEF:totalmaxbits{j}=maxbits{j},MAXIMUM",
                     f"VDEF:totallastbits{j}=avgbits{j},LAST",
-                    f"AREA:avgbits{j}{color(j)}:{hostname: <16}:STACK",
+                    f"AREA:avgbits{j}{color(j)}:{hostname[:15] + '…' if len(hostname) > 16 else hostname: <16}:STACK",
                     # f"GPRINT:totalavgbits{j}:Average\\: %5.1lf %sbps",
                     # f"GPRINT:totallastbits{j}:Current\\: %5.1lf %sbps\\n",
                     f"GPRINT:totalavgbits{j}:%7.1lf %sbps",
