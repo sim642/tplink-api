@@ -2,18 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>tplink-api flask graphs</title>
-{#    <meta http-equiv="refresh" content="5"/>#}
+    <title>tplink-api graphs</title>
+    <meta http-equiv="refresh" content="5"/>
 </head>
 <body>
 {% for start in starts|reverse %}
-    <img src="graph-stack/{{ start }}"/>
+    <img src="stack-{{ start }}.png"/>
 {% endfor %}
 <hr/>
 
 {% for hostname in sorted_hostnames %}
     {% for start in starts|reverse %}
-        <img src="graph/{{ hostname }}/{{ start }}"/>
+        <img src="{{ hostname }}-{{ start }}.png"/>
     {% endfor %}
     <br/>
 {% endfor %}

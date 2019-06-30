@@ -8,12 +8,15 @@ import time
 from tplink import TpLinkApi
 import rrdtool_wrapper
 import rrds
+from jinja2 import Environment, FileSystemLoader
 
 dotenv.load_dotenv()
 
+jinja2_env = Environment(loader=FileSystemLoader("templates"))
 
 os.makedirs("rrds", exist_ok=True)
 os.makedirs("graphs", exist_ok=True)
+
 
 def update_rrd(hostname, bytes_total):
     filename = rrds.hostname_rrd(hostname)
@@ -21,58 +24,37 @@ def update_rrd(hostname, bytes_total):
 
 
 def graph_rrd(hostname, entry):
-    for i, start in enumerate(rrds.starts):
-        graph_filename = f"graphs/{hostname}-{i}.png"
+    for start in rrds.starts:
+        graph_filename = f"graphs/{hostname}-{start}.png"
         rrdtool_wrapper.graph_file(
             graph_filename,
             rrds.graph_args(hostname, entry.ip, start)
         )
 
-def graph_rrd_stack(hostnames, stats):
+
+def get_sorted_hostnames(hostnames, stats):
     sorted_hostnames = []
     for entry in sorted(stats, key=lambda entry: entry.ip):
         hostname = hostnames.get(entry.ip)
         if hostname:
             sorted_hostnames.append(hostname)
+    return sorted_hostnames
 
-    for i, start in enumerate(rrds.starts):
-        graph_filename = f"graphs/stack-{i}.png"
+
+def graph_rrd_stack(hostnames, stats):
+    sorted_hostnames = get_sorted_hostnames(hostnames, stats)
+    for start in rrds.starts:
+        graph_filename = f"graphs/stack-{start}.png"
         rrdtool_wrapper.graph_file(
             graph_filename,
             rrds.graph_stack_args(sorted_hostnames, start)
         )
 
+
 def graphs_index(hostnames, stats):
-    with open("graphs/index.html", "w") as index_file:
-        index_file.write(
-"""<!DOCTYPE html>
-<html>
-<head>
-    <title>tplink-api graphs</title>
-    <meta http-equiv="refresh" content="5">
-</head>
-<body>""")
-
-        for i in reversed(range(len(rrds.starts))):
-            index_file.write(
-                f"<img src=\"stack-{i}.png\" />"
-            )
-
-        index_file.write("<hr />")
-
-        for entry in sorted(stats, key=lambda entry: entry.ip):
-            hostname = hostnames.get(entry.ip)
-            if hostname:
-                for i in reversed(range(len(rrds.starts))):
-                    index_file.write(
-                        f"<img src=\"{hostname}-{i}.png\" />"
-                    )
-
-                index_file.write("<br />")
-
-        index_file.write(
-"""</body>
-</html>""")
+    sorted_hostnames = get_sorted_hostnames(hostnames, stats)
+    template = jinja2_env.get_template("graphs-static.html")
+    template.stream(sorted_hostnames=sorted_hostnames, starts=rrds.starts).dump("graphs/index.html")
 
 
 tplink = TpLinkApi(os.getenv("TPLINK_ADDRESS"), os.getenv("TPLINK_USERNAME"), os.getenv("TPLINK_PASSWORD"))
