@@ -65,12 +65,15 @@ def graph_rrd(hostname, entry):
             "CDEF:maxbits=maxbytes,8,*",
             "VDEF:totalavgbits=avgbits,AVERAGE",
             "VDEF:totalmaxbits=maxbits,MAXIMUM",
+            "VDEF:totallastbits=avgbits,LAST",
             "AREA:avgbits#00FF00:Average",
             # "GPRINT:totalavgbits:Average\\: %.1lf %sbps",
             "GPRINT:totalavgbits:%.1lf %sbps",
-            "LINE1:maxbits#FF0000:Max",
+            "LINE0.5:maxbits#FF0000:Max",
             # "GPRINT:totalmaxbits:Max\\: %.1lf %sbps",
             "GPRINT:totalmaxbits:%.1lf %sbps",
+            "COMMENT:Current",
+            "GPRINT:totallastbits:%.1lf %sbps",
         )
 
 def graphs_index(hostnames, stats):
