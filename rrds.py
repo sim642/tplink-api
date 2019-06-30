@@ -20,11 +20,11 @@ starts = [
 ]
 
 
-def graph_args(hostname, entry, start):
+def graph_args(hostname, ip, start):
     rrd = hostname_rrd(hostname)
     return [
         "--start", f"-{start}",
-        "--title", f"{hostname} ({entry.ip})",
+        "--title", f"{hostname} ({ip})",
         "--vertical-label", "bps",
         "--disable-rrdtool-tag",
         "--slope-mode",
@@ -46,32 +46,27 @@ def graph_args(hostname, entry, start):
     ]
 
 
-def graph_stack_args(hostnames, stats, start):
+def graph_stack_args(sorted_hostnames, start):
     args = []
-    j = 0
-    for entry in sorted(stats, key=lambda entry: entry.ip):
-        hostname = hostnames.get(entry.ip)
-        if hostname:
-            rrd = hostname_rrd(hostname)
-            color = colorutil.rgb_to_hex(*colorutil.random_det(j))
-            ellipsized_hostname = ellipsize(hostname, HOSTNAME_WIDTH)
-            args += [
-                f"DEF:avgbytes{j}={rrd}:bytes:AVERAGE",
-                f"DEF:maxbytes{j}={rrd}:bytes:MAX",
-                f"CDEF:avgbits{j}=avgbytes{j},8,*",
-                f"CDEF:maxbits{j}=maxbytes{j},8,*",
-                f"VDEF:totalavgbits{j}=avgbits{j},AVERAGE",
-                f"VDEF:totalmaxbits{j}=maxbits{j},MAXIMUM",
-                f"VDEF:totallastbits{j}=avgbits{j},LAST",
-                f"AREA:avgbits{j}{color}:{ellipsized_hostname: <{HOSTNAME_WIDTH}}:STACK",
-                # f"GPRINT:totalavgbits{j}:Average\\: %5.1lf %sbps",
-                # f"GPRINT:totallastbits{j}:Current\\: %5.1lf %sbps\\n",
-                f"GPRINT:totalavgbits{j}:%7.1lf %sbps",
-                f"GPRINT:totalmaxbits{j}:%7.1lf %sbps",
-                f"GPRINT:totallastbits{j}:%7.1lf %sbps\\n",
-            ]
-
-            j += 1
+    for j, hostname in enumerate(sorted_hostnames):
+        rrd = hostname_rrd(hostname)
+        color = colorutil.rgb_to_hex(*colorutil.random_det(j))
+        ellipsized_hostname = ellipsize(hostname, HOSTNAME_WIDTH)
+        args += [
+            f"DEF:avgbytes{j}={rrd}:bytes:AVERAGE",
+            f"DEF:maxbytes{j}={rrd}:bytes:MAX",
+            f"CDEF:avgbits{j}=avgbytes{j},8,*",
+            f"CDEF:maxbits{j}=maxbytes{j},8,*",
+            f"VDEF:totalavgbits{j}=avgbits{j},AVERAGE",
+            f"VDEF:totalmaxbits{j}=maxbits{j},MAXIMUM",
+            f"VDEF:totallastbits{j}=avgbits{j},LAST",
+            f"AREA:avgbits{j}{color}:{ellipsized_hostname: <{HOSTNAME_WIDTH}}:STACK",
+            # f"GPRINT:totalavgbits{j}:Average\\: %5.1lf %sbps",
+            # f"GPRINT:totallastbits{j}:Current\\: %5.1lf %sbps\\n",
+            f"GPRINT:totalavgbits{j}:%7.1lf %sbps",
+            f"GPRINT:totalmaxbits{j}:%7.1lf %sbps",
+            f"GPRINT:totallastbits{j}:%7.1lf %sbps\\n",
+        ]
 
     return [
         "--start", f"-{start}",

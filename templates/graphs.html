@@ -11,14 +11,11 @@
 {% endfor %}
 <hr/>
 
-{% for entry in stats|sort(attribute='ip') %}
-    {% set hostname = hostnames.get(entry.ip) %}
-    {% if hostname %}
-        {% for start in starts|reverse %}
-            <img src="graph/{{ hostname }}/{{ start }}"/>
-        {% endfor %}
-        <br/>
-    {% endif %}
+{% for hostname in sorted_hostnames %}
+    {% for start in starts|reverse %}
+        <img src="graph/{{ hostname }}/{{ start }}"/>
+    {% endfor %}
+    <br/>
 {% endfor %}
 </body>
 </html>
