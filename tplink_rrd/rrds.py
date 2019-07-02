@@ -10,11 +10,11 @@ def ellipsize(s, length):
 
 
 def hostname_rrd(hostname):
-    filename = f"rrds/{hostname}.rrd"
+    rrd = f"rrds/{hostname}.rrd"
 
-    if not os.path.isfile(filename):
+    if not os.path.isfile(rrd):
         rrdtool_wrapper.create(
-            filename,
+            rrd,
             "--start", "now",
             "--step", "5",  # TODO: 5 minutes (300s) instead of 5 seconds
             "DS:bytes:COUNTER:10:U:U",  # TODO: 10 minutes (600s) instead of 10 seconds
@@ -28,7 +28,12 @@ def hostname_rrd(hostname):
             "RRA:MAX:0.5:288:797",
         )
 
-    return filename
+    return rrd
+
+
+def update(hostname, bytes):
+    rrd = hostname_rrd(hostname)
+    rrdtool_wrapper.update(rrd, f"N:{bytes}")
 
 
 starts = [

@@ -2,7 +2,6 @@ import math
 
 import dotenv
 import os
-import rrdtool
 import time
 
 from tplink import TpLinkApi
@@ -19,11 +18,6 @@ jinja2_env = Environment(loader=PackageLoader("tplink_rrd", "templates"))
 
 os.makedirs("rrds", exist_ok=True)
 os.makedirs("graphs", exist_ok=True)
-
-
-def update_rrd(hostname, bytes_total):
-    filename = rrds.hostname_rrd(hostname)
-    rrdtool.update(filename, f"N:{bytes_total}")
 
 
 def graph_rrd(hostname, entry):
@@ -78,7 +72,7 @@ def run():
         print(f"{entry.ip} ({hostname}): {format_bytes(entry.bytes_total)} {format_bytes(entry.bytes_per_sec)}/s")
 
         if hostname:
-            update_rrd(hostname, entry.bytes_total)
+            rrds.update(hostname, entry.bytes_total)
             if generate_static:
                 graph_rrd(hostname, entry)
 
