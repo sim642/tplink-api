@@ -16,9 +16,6 @@ generate_static = True
 
 jinja2_env = Environment(loader=PackageLoader("tplink_rrd", "templates"))
 
-os.makedirs("rrds", exist_ok=True)
-os.makedirs("graphs", exist_ok=True)
-
 
 def graph_rrd(hostname, entry):
     for start in rrds.starts:
@@ -55,6 +52,9 @@ def graphs_index(hostnames, stats):
 
 
 tplink = TpLinkApi.from_env()
+
+if generate_static:
+    os.makedirs("graphs", exist_ok=True)
 
 
 def run():

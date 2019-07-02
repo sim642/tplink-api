@@ -13,6 +13,8 @@ def hostname_rrd(hostname):
     rrd = f"rrds/{hostname}.rrd"
 
     if not os.path.isfile(rrd):
+        os.makedirs("rrds", exist_ok=True)
+
         rrdtool_wrapper.create(
             rrd,
             "--start", "now",
