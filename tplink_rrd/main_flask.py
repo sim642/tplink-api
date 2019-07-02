@@ -1,13 +1,12 @@
-import io
 import threading
 import time
 
 import dotenv
-from flask import Flask, render_template, send_file
+from flask import Flask, render_template
 
-from . import rrds
-from . import rrdtool_wrapper
 from tplink import TpLinkApi
+from . import flaskutil
+from . import rrds
 
 dotenv.load_dotenv()
 
@@ -52,17 +51,9 @@ def index():
 
 @app.route("/graph/<string:hostname>/<int:start>")
 def graph_rrd(hostname, start):
-    image = rrdtool_wrapper.graph_return(rrds.graph_args(hostname, ips[hostname], start))
-    return send_file(
-        io.BytesIO(image),
-        mimetype="image/png"
-    )
+    return flaskutil.send_rrd_graph(rrds.graph_args(hostname, ips[hostname], start))
 
 
 @app.route("/graph-stack/<int:start>")
 def graph_rrd_stack(start):
-    image = rrdtool_wrapper.graph_return(rrds.graph_stack_args(get_sorted_hostnames(), start))
-    return send_file(
-        io.BytesIO(image),
-        mimetype="image/png"
-    )
+    return flaskutil.send_rrd_graph(rrds.graph_stack_args(get_sorted_hostnames(), start))
