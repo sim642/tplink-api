@@ -1,6 +1,6 @@
-import colorutil
 import os
-import rrdtool_wrapper
+from . import rrdtool_wrapper
+from . import colorutil
 
 HOSTNAME_WIDTH = 16
 

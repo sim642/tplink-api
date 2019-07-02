@@ -6,13 +6,13 @@ import rrdtool
 import time
 
 from tplink import TpLinkApi
-import rrdtool_wrapper
-import rrds
-from jinja2 import Environment, FileSystemLoader
+from . import rrdtool_wrapper
+from . import rrds
+from jinja2 import Environment, PackageLoader
 
 dotenv.load_dotenv()
 
-jinja2_env = Environment(loader=FileSystemLoader("templates"))
+jinja2_env = Environment(loader=PackageLoader("tplink_rrd", "templates"))
 
 os.makedirs("rrds", exist_ok=True)
 os.makedirs("graphs", exist_ok=True)

@@ -5,8 +5,8 @@ import time
 import dotenv
 from flask import Flask, render_template, send_file
 
-import rrds
-import rrdtool_wrapper
+from . import rrds
+from . import rrdtool_wrapper
 from tplink import TpLinkApi
 
 dotenv.load_dotenv()
