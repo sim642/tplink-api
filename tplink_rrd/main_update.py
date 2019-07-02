@@ -12,6 +12,9 @@ from jinja2 import Environment, PackageLoader
 
 dotenv.load_dotenv()
 
+single_shot = False
+generate_static = True
+
 jinja2_env = Environment(loader=PackageLoader("tplink_rrd", "templates"))
 
 os.makedirs("rrds", exist_ok=True)
@@ -60,18 +63,15 @@ def graphs_index(hostnames, stats):
 tplink = TpLinkApi.from_env()
 
 
-while True:
+def run():
     stats = tplink.get_stats(5)  # TODO: longer interval here too?
     dhcp = tplink.get_dhcp()
-    # print(dhcp)
     hostnames = {entry.ip: entry.hostname for entry in dhcp}
-
 
     def format_bytes(b):
         units = ["B", "kB", "MB", "GB", "TB"]
         i = math.floor(math.log(b, 1024)) if b > 0 else 0
         return f"{round(b / 1024 ** i * 100) / 100} {units[i]}"
-
 
     for entry in sorted(stats, key=lambda entry: entry.ip):
         hostname = hostnames.get(entry.ip)
@@ -79,9 +79,17 @@ while True:
 
         if hostname:
             update_rrd(hostname, entry.bytes_total)
-            graph_rrd(hostname, entry)
+            if generate_static:
+                graph_rrd(hostname, entry)
 
-    graph_rrd_stack(hostnames, stats)
-    graphs_index(hostnames, stats)
+    if generate_static:
+        graph_rrd_stack(hostnames, stats)
+        graphs_index(hostnames, stats)
 
-    time.sleep(5)  # TODO: long interval
+
+if single_shot:
+    run()
+else:
+    while True:
+        run()
+        time.sleep(5)  # TODO: long interval
