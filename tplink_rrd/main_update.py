@@ -2,13 +2,12 @@ import math
 
 import dotenv
 import os
-import time
+import threading
 
 from tplink import TpLinkApi
 from . import rrdtool_wrapper
 from . import rrds
 from jinja2 import Environment, PackageLoader
-import timeit
 
 dotenv.load_dotenv()
 
@@ -58,15 +57,9 @@ if generate_static:
     os.makedirs("graphs", exist_ok=True)
 
 
-last_run_time = None
-
-
 def run():
-    global last_run_time
-    run_time = timeit.default_timer()
-    if last_run_time:
-        print(f"run time delta: {run_time - last_run_time} s")
-    last_run_time = run_time
+    if not single_shot:
+        threading.Timer(5, run).start()  # TODO: long interval
 
     stats = tplink.get_stats(5)  # TODO: longer interval here too?
     dhcp = tplink.get_dhcp()
@@ -91,9 +84,4 @@ def run():
         graphs_index(hostnames, stats)
 
 
-if single_shot:
-    run()
-else:
-    while True:
-        run()
-        time.sleep(5)  # TODO: long interval
+run()
