@@ -15,36 +15,38 @@ class StaticBandwidthGenerator:
 
         self.jinja2_env = Environment(loader=PackageLoader("tplink_rrd", "templates"))
 
-    def graph_rrd(self, hostname, ips, start):
-        graph_filename = f"graphs/{hostname}-{start}.png"
+    def generate_graph_hostname(self, hostname, ips, start):
+        graph_filename = f"static/graph-hostname/{hostname}-{start}.png"
         self.rrdtool.graph_file(
             graph_filename,
             self.rrds.graph_args(hostname, ips.get(hostname), start)
         )
 
-    def graph_rrd_stack(self, sorted_hostnames, start):
-        graph_filename = f"graphs/stack-{start}.png"
+    def generate_graph_stack(self, sorted_hostnames, start):
+        graph_filename = f"static/graph-stack/{start}.png"
         self.rrdtool.graph_file(
             graph_filename,
             self.rrds.graph_stack_args(sorted_hostnames, start)
         )
 
-    def graphs_index(self, sorted_hostnames):
+    def generate_index(self, sorted_hostnames):
         template = self.jinja2_env.get_template("graphs-static.html")
-        template.stream(sorted_hostnames=sorted_hostnames, starts=self.rrds.starts).dump("graphs/index.html")
+        template.stream(sorted_hostnames=sorted_hostnames, starts=self.rrds.starts).dump("static/index.html")
 
     def generate(self, ips):
-        os.makedirs("graphs", exist_ok=True)
+        os.makedirs("static", exist_ok=True)
+        os.makedirs("static/graph-hostname", exist_ok=True)
+        os.makedirs("static/graph-stack", exist_ok=True)
 
         sorted_hostnames = self.rrds.get_sorted_hostnames(ips)
 
         for start in self.rrds.starts:
-            self.graph_rrd_stack(sorted_hostnames, start)
+            self.generate_graph_stack(sorted_hostnames, start)
 
             for hostname in sorted_hostnames:
-                self.graph_rrd(hostname, ips, start)
+                self.generate_graph_hostname(hostname, ips, start)
 
-        self.graphs_index(sorted_hostnames)
+        self.generate_index(sorted_hostnames)
 
 
 if __name__ == '__main__':
