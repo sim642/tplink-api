@@ -2,7 +2,7 @@ import threading
 import time
 
 import dotenv
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 
 from tplink import TpLinkApi
 from .flaskutil import send_bytes
@@ -25,20 +25,18 @@ def send_rrd_graph(*args):
 
 
 tplink = TpLinkApi.from_env()
-ips = None
+ips = {}
+sorted_hostnames = []
 
 
 def tplink_thread():
-    global ips
+    global ips, sorted_hostnames
     while True:
         dhcp = tplink.get_dhcp()
         ips = {entry.hostname: entry.ip for entry in dhcp}
+        sorted_hostnames = rrds.get_sorted_hostnames(ips)
 
         time.sleep(5)  # TODO: much longer interval
-
-
-def get_sorted_hostnames():
-    return rrds.get_sorted_hostnames(ips)
 
 
 t = threading.Thread(target=tplink_thread, daemon=True)
@@ -47,14 +45,16 @@ t.start()
 
 @app.route("/")
 def index():
-    return render_template("graphs-flask.html", sorted_hostnames=get_sorted_hostnames(), starts=rrds.starts)
+    return render_template("graphs-flask.html", sorted_hostnames=sorted_hostnames, starts=rrds.starts)
 
 
-@app.route("/graph/<string:hostname>/<int:start>")
-def graph_rrd(hostname, start):
+@app.route("/graph/hostname/<string:hostname>")
+def graph_hostname(hostname):
+    start = request.args.get("start")
     return send_rrd_graph(rrds.graph_args(hostname, ips.get(hostname), start))
 
 
-@app.route("/graph-stack/<int:start>")
-def graph_rrd_stack(start):
-    return send_rrd_graph(rrds.graph_stack_args(get_sorted_hostnames(), start))
+@app.route("/graph/stack")
+def graph_stack():
+    start = request.args.get("start")
+    return send_rrd_graph(rrds.graph_stack_args(sorted_hostnames, start))
