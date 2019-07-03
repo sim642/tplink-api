@@ -1,13 +1,12 @@
 import math
 
 import dotenv
-import os
 import threading
 
 from tplink import TpLinkApi
 from .rrdtool_wrapper import LockRrdTool
 from .rrds import BandwidthRrdTool
-from jinja2 import Environment, PackageLoader
+from .main_static import StaticBandwidthGenerator
 
 dotenv.load_dotenv()
 
@@ -16,39 +15,9 @@ generate_static = False
 
 rrdtool = LockRrdTool()
 rrds = BandwidthRrdTool(rrdtool)
-
-jinja2_env = Environment(loader=PackageLoader("tplink_rrd", "templates"))
-
-
-def graph_rrd(hostname, ips):
-    for start in rrds.starts:
-        graph_filename = f"graphs/{hostname}-{start}.png"
-        rrdtool.graph_file(
-            graph_filename,
-            rrds.graph_args(hostname, ips.get(hostname), start)
-        )
-
-
-def graph_rrd_stack(ips):
-    sorted_hostnames = rrds.get_sorted_hostnames(ips)
-    for start in rrds.starts:
-        graph_filename = f"graphs/stack-{start}.png"
-        rrdtool.graph_file(
-            graph_filename,
-            rrds.graph_stack_args(sorted_hostnames, start)
-        )
-
-
-def graphs_index(ips):
-    sorted_hostnames = rrds.get_sorted_hostnames(ips)
-    template = jinja2_env.get_template("graphs-static.html")
-    template.stream(sorted_hostnames=sorted_hostnames, starts=rrds.starts).dump("graphs/index.html")
-
+generator = StaticBandwidthGenerator(rrdtool, rrds)
 
 tplink = TpLinkApi.from_env()
-
-if generate_static:
-    os.makedirs("graphs", exist_ok=True)
 
 
 def run():
@@ -73,11 +42,7 @@ def run():
             rrds.update(hostname, entry.bytes_total)
 
     if generate_static:
-        for hostname in rrds.get_sorted_hostnames(ips):
-            graph_rrd(hostname, ips)
-
-        graph_rrd_stack(ips)
-        graphs_index(ips)
+        generator.generate(ips)
 
 
 run()
