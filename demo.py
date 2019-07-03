@@ -10,7 +10,7 @@ dotenv.load_dotenv()
 
 tplink = TpLinkApi.from_env()
 
-stats = tplink.get_stats(5)
+stats = tplink.get_stats()
 dhcp = tplink.get_dhcp()
 hostnames = {entry.ip: entry.hostname for entry in dhcp}
 

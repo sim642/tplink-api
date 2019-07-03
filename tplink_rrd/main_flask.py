@@ -22,7 +22,7 @@ ips = None
 def tplink_thread():
     global stats, hostnames, ips
     while True:
-        stats = tplink.get_stats(5)  # TODO: longer interval here too?
+        stats = tplink.get_stats()
         dhcp = tplink.get_dhcp()
         # print(dhcp)
         hostnames = {entry.ip: entry.hostname for entry in dhcp}

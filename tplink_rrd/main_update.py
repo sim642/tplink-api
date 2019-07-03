@@ -61,7 +61,7 @@ def run():
     if not single_shot:
         threading.Timer(5, run).start()  # TODO: long interval
 
-    stats = tplink.get_stats(5)  # TODO: longer interval here too?
+    stats = tplink.get_stats()
     dhcp = tplink.get_dhcp()
     hostnames = {entry.ip: entry.hostname for entry in dhcp}
 
