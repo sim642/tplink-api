@@ -5,12 +5,24 @@ import dotenv
 from flask import Flask, render_template
 
 from tplink import TpLinkApi
-from . import flaskutil
-from . import rrds
+from .flaskutil import send_bytes
+from .rrds import BandwidthRrdTool
+from .rrdtool_wrapper import MultiprocessRrdTool
 
 dotenv.load_dotenv()
 
 app = Flask(__name__)
+
+rrdtool = MultiprocessRrdTool()
+rrds = BandwidthRrdTool(rrdtool)
+
+
+def send_rrd_graph(*args):
+    return send_bytes(
+        rrdtool.graph_return(*args),
+        mimetype="image/png"
+    )
+
 
 tplink = TpLinkApi.from_env()
 
@@ -51,9 +63,9 @@ def index():
 
 @app.route("/graph/<string:hostname>/<int:start>")
 def graph_rrd(hostname, start):
-    return flaskutil.send_rrd_graph(rrds.graph_args(hostname, ips[hostname], start))
+    return send_rrd_graph(rrds.graph_args(hostname, ips[hostname], start))
 
 
 @app.route("/graph-stack/<int:start>")
 def graph_rrd_stack(start):
-    return flaskutil.send_rrd_graph(rrds.graph_stack_args(get_sorted_hostnames(), start))
+    return send_rrd_graph(rrds.graph_stack_args(get_sorted_hostnames(), start))

@@ -1,24 +1,45 @@
 import rrdtool
 import threading
-
-rrdtool_lock = threading.Lock()
+import multiprocessing
 
 
 def graph_return(*args):
-    with rrdtool_lock:
-        return rrdtool.graphv("-", *args)["image"]
+    return rrdtool.graphv("-", *args)["image"]
 
 
 def graph_file(filename, *args):
-    with rrdtool_lock:
         rrdtool.graph(filename, *args)
 
 
-def create(filename, *args):
-    with rrdtool_lock:
-        rrdtool.create(filename, *args)
+class LockRrdTool:
+    def __init__(self) -> None:
+        self.lock = threading.Lock()
+
+    def graph_return(self, *args):
+        with self.lock:
+            return graph_return(*args)
+
+    def graph_file(self, filename, *args):
+        with self.lock:
+            graph_file(filename, *args)
+
+    def create(self, filename, *args):
+        with self.lock:
+            rrdtool.create(filename, *args)
+
+    def update(self, filename, *args):
+        with self.lock:
+            rrdtool.update(filename, *args)
 
 
-def update(filename, *args):
-    with rrdtool_lock:
-        rrdtool.update(filename, *args)
+class MultiprocessRrdTool(LockRrdTool):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.pool = multiprocessing.Pool()
+
+    def graph_return(self, *args):
+        return self.pool.apply(graph_return, args=args)
+
+    def graph_file(self, filename, *args):
+        self.pool.apply(graph_file, args=(filename, *args))

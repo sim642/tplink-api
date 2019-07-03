@@ -5,14 +5,17 @@ import os
 import threading
 
 from tplink import TpLinkApi
-from . import rrdtool_wrapper
-from . import rrds
+from .rrdtool_wrapper import LockRrdTool
+from .rrds import BandwidthRrdTool
 from jinja2 import Environment, PackageLoader
 
 dotenv.load_dotenv()
 
 single_shot = False
-generate_static = True
+generate_static = False
+
+rrdtool = LockRrdTool()
+rrds = BandwidthRrdTool(rrdtool)
 
 jinja2_env = Environment(loader=PackageLoader("tplink_rrd", "templates"))
 
@@ -20,7 +23,7 @@ jinja2_env = Environment(loader=PackageLoader("tplink_rrd", "templates"))
 def graph_rrd(hostname, entry):
     for start in rrds.starts:
         graph_filename = f"graphs/{hostname}-{start}.png"
-        rrdtool_wrapper.graph_file(
+        rrdtool.graph_file(
             graph_filename,
             rrds.graph_args(hostname, entry.ip, start)
         )
@@ -39,7 +42,7 @@ def graph_rrd_stack(hostnames, stats):
     sorted_hostnames = get_sorted_hostnames(hostnames, stats)
     for start in rrds.starts:
         graph_filename = f"graphs/stack-{start}.png"
-        rrdtool_wrapper.graph_file(
+        rrdtool.graph_file(
             graph_filename,
             rrds.graph_stack_args(sorted_hostnames, start)
         )
