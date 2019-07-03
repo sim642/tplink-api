@@ -11,6 +11,11 @@ def graph_file(filename, *args):
         rrdtool.graph(filename, *args)
 
 
+# librrdtool isn't thread safe:
+# https://oss.oetiker.ch/rrdtool/prog/rrdthreads.en.html
+#
+# concurrent graph produces broken graphs when called from Flask threads
+
 class LockRrdTool:
     def __init__(self) -> None:
         self.lock = threading.Lock()
