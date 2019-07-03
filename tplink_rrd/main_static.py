@@ -15,36 +15,36 @@ class StaticBandwidthGenerator:
 
         self.jinja2_env = Environment(loader=PackageLoader("tplink_rrd", "templates"))
 
-    def graph_rrd(self, hostname, ips):
-        for start in self.rrds.starts:
-            graph_filename = f"graphs/{hostname}-{start}.png"
-            self.rrdtool.graph_file(
-                graph_filename,
-                self.rrds.graph_args(hostname, ips.get(hostname), start)
-            )
+    def graph_rrd(self, hostname, ips, start):
+        graph_filename = f"graphs/{hostname}-{start}.png"
+        self.rrdtool.graph_file(
+            graph_filename,
+            self.rrds.graph_args(hostname, ips.get(hostname), start)
+        )
 
-    def graph_rrd_stack(self, ips):
-        sorted_hostnames = self.rrds.get_sorted_hostnames(ips)
-        for start in self.rrds.starts:
-            graph_filename = f"graphs/stack-{start}.png"
-            self.rrdtool.graph_file(
-                graph_filename,
-                self.rrds.graph_stack_args(sorted_hostnames, start)
-            )
+    def graph_rrd_stack(self, sorted_hostnames, start):
+        graph_filename = f"graphs/stack-{start}.png"
+        self.rrdtool.graph_file(
+            graph_filename,
+            self.rrds.graph_stack_args(sorted_hostnames, start)
+        )
 
-    def graphs_index(self, ips):
-        sorted_hostnames = self.rrds.get_sorted_hostnames(ips)
+    def graphs_index(self, sorted_hostnames):
         template = self.jinja2_env.get_template("graphs-static.html")
         template.stream(sorted_hostnames=sorted_hostnames, starts=self.rrds.starts).dump("graphs/index.html")
 
     def generate(self, ips):
         os.makedirs("graphs", exist_ok=True)
 
-        for hostname in self.rrds.get_sorted_hostnames(ips):
-            self.graph_rrd(hostname, ips)
+        sorted_hostnames = self.rrds.get_sorted_hostnames(ips)
 
-        self.graph_rrd_stack(ips)
-        self.graphs_index(ips)
+        for start in self.rrds.starts:
+            self.graph_rrd_stack(sorted_hostnames, start)
+
+            for hostname in sorted_hostnames:
+                self.graph_rrd(hostname, ips, start)
+
+        self.graphs_index(sorted_hostnames)
 
 
 if __name__ == '__main__':
