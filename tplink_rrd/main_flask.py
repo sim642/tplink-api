@@ -25,19 +25,13 @@ def send_rrd_graph(*args):
 
 
 tplink = TpLinkApi.from_env()
-
-stats = None
-hostnames = None
 ips = None
 
 
 def tplink_thread():
-    global stats, hostnames, ips
+    global ips
     while True:
-        stats = tplink.get_stats()
         dhcp = tplink.get_dhcp()
-        # print(dhcp)
-        hostnames = {entry.ip: entry.hostname for entry in dhcp}
         ips = {entry.hostname: entry.ip for entry in dhcp}
 
         time.sleep(5)  # TODO: much longer interval
