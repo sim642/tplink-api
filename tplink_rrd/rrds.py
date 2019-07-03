@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from . import colorutil
 
 HOSTNAME_WIDTH = 16
@@ -43,13 +44,12 @@ class BandwidthRrdTool:
         return rrd
 
     @staticmethod
-    def get_sorted_hostnames(hostnames, stats):
-        sorted_hostnames = []
-        for entry in sorted(stats, key=lambda entry: entry.ip):
-            hostname = hostnames.get(entry.ip)
-            if hostname:
-                sorted_hostnames.append(hostname)
-        return sorted_hostnames
+    def get_sorted_hostnames(ips):
+        def key(hostname):
+            ip = ips.get(hostname)
+            return (ip is None, ip if ip else hostname)  # None-s last
+
+        return sorted((rrdpath.stem for rrdpath in Path("rrds").glob("*.rrd")), key=key)
 
     def update(self, hostname, bytes):
         rrd = self.hostname_rrd(hostname)
@@ -57,9 +57,10 @@ class BandwidthRrdTool:
 
     def graph_args(self, hostname, ip, start):
         rrd = self.hostname_rrd(hostname)
+        ip_str = f" ({ip})" if ip else ""
         return [
             "--start", f"-{start}",
-            "--title", f"{hostname} ({ip})",
+            "--title", f"{hostname}{ip_str}",
             "--vertical-label", "bps",
             "--disable-rrdtool-tag",
             "--slope-mode",

@@ -20,17 +20,17 @@ rrds = BandwidthRrdTool(rrdtool)
 jinja2_env = Environment(loader=PackageLoader("tplink_rrd", "templates"))
 
 
-def graph_rrd(hostname, entry):
+def graph_rrd(hostname, ips):
     for start in rrds.starts:
         graph_filename = f"graphs/{hostname}-{start}.png"
         rrdtool.graph_file(
             graph_filename,
-            rrds.graph_args(hostname, entry.ip, start)
+            rrds.graph_args(hostname, ips.get(hostname), start)
         )
 
 
-def graph_rrd_stack(hostnames, stats):
-    sorted_hostnames = rrds.get_sorted_hostnames(hostnames, stats)
+def graph_rrd_stack(ips):
+    sorted_hostnames = rrds.get_sorted_hostnames(ips)
     for start in rrds.starts:
         graph_filename = f"graphs/stack-{start}.png"
         rrdtool.graph_file(
@@ -39,8 +39,8 @@ def graph_rrd_stack(hostnames, stats):
         )
 
 
-def graphs_index(hostnames, stats):
-    sorted_hostnames = rrds.get_sorted_hostnames(hostnames, stats)
+def graphs_index(ips):
+    sorted_hostnames = rrds.get_sorted_hostnames(ips)
     template = jinja2_env.get_template("graphs-static.html")
     template.stream(sorted_hostnames=sorted_hostnames, starts=rrds.starts).dump("graphs/index.html")
 
@@ -58,6 +58,7 @@ def run():
     stats = tplink.get_stats()
     dhcp = tplink.get_dhcp()
     hostnames = {entry.ip: entry.hostname for entry in dhcp}
+    ips = {entry.hostname: entry.ip for entry in dhcp}
 
     def format_bytes(b):
         units = ["B", "kB", "MB", "GB", "TB"]
@@ -70,12 +71,13 @@ def run():
 
         if hostname:
             rrds.update(hostname, entry.bytes_total)
-            if generate_static:
-                graph_rrd(hostname, entry)
 
     if generate_static:
-        graph_rrd_stack(hostnames, stats)
-        graphs_index(hostnames, stats)
+        for hostname in rrds.get_sorted_hostnames(ips):
+            graph_rrd(hostname, ips)
+
+        graph_rrd_stack(ips)
+        graphs_index(ips)
 
 
 run()

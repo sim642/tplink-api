@@ -44,7 +44,7 @@ def tplink_thread():
 
 
 def get_sorted_hostnames():
-    return rrds.get_sorted_hostnames(hostnames, stats)
+    return rrds.get_sorted_hostnames(ips)
 
 
 t = threading.Thread(target=tplink_thread, daemon=True)
@@ -58,7 +58,7 @@ def index():
 
 @app.route("/graph/<string:hostname>/<int:start>")
 def graph_rrd(hostname, start):
-    return send_rrd_graph(rrds.graph_args(hostname, ips[hostname], start))
+    return send_rrd_graph(rrds.graph_args(hostname, ips.get(hostname), start))
 
 
 @app.route("/graph-stack/<int:start>")
