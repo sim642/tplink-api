@@ -8,7 +8,7 @@ def graph_return(*args):
 
 
 def graph_file(filename, *args):
-        rrdtool.graph(filename, *args)
+    rrdtool.graph(str(filename), *args)
 
 
 # librrdtool isn't thread safe:
@@ -30,11 +30,11 @@ class LockRrdTool:
 
     def create(self, filename, *args):
         with self.lock:
-            rrdtool.create(filename, *args)
+            rrdtool.create(str(filename), *args)
 
     def update(self, filename, *args):
         with self.lock:
-            rrdtool.update(filename, *args)
+            rrdtool.update(str(filename), *args)
 
 
 class MultiprocessRrdTool(LockRrdTool):

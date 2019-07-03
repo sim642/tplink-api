@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import dotenv
 from jinja2 import Environment, PackageLoader
@@ -9,23 +9,27 @@ from .rrdtool_wrapper import LockRrdTool
 
 
 class StaticBandwidthGenerator:
+    static_path = Path("static")
+    graph_hostname_path = static_path / "graph-hostname"
+    graph_stack_path = static_path / "graph-stack"
+
     def __init__(self, rrdtool, rrds) -> None:
         self.rrdtool = rrdtool
         self.rrds = rrds
 
-        self.jinja2_env = Environment(loader=PackageLoader("tplink_rrd", "templates"))
+        self.jinja2_env = Environment(loader=PackageLoader("tplink_rrd"))
 
     def generate_graph_hostname(self, hostname, ips, start):
-        graph_filename = f"static/graph-hostname/{hostname}-{start}.png"
+        graph_path = self.graph_hostname_path / f"{hostname}-{start}.png"
         self.rrdtool.graph_file(
-            graph_filename,
+            graph_path,
             self.rrds.graph_args(hostname, ips.get(hostname), start)
         )
 
     def generate_graph_stack(self, sorted_hostnames, start):
-        graph_filename = f"static/graph-stack/{start}.png"
+        graph_path = self.graph_stack_path / f"{start}.png"
         self.rrdtool.graph_file(
-            graph_filename,
+            graph_path,
             self.rrds.graph_stack_args(sorted_hostnames, start)
         )
 
@@ -34,9 +38,9 @@ class StaticBandwidthGenerator:
         template.stream(sorted_hostnames=sorted_hostnames, starts=self.rrds.starts).dump("static/index.html")
 
     def generate(self, ips):
-        os.makedirs("static", exist_ok=True)
-        os.makedirs("static/graph-hostname", exist_ok=True)
-        os.makedirs("static/graph-stack", exist_ok=True)
+        self.static_path.mkdir(exist_ok=True)
+        self.graph_hostname_path.mkdir(exist_ok=True)
+        self.graph_stack_path.mkdir(exist_ok=True)
 
         sorted_hostnames = self.rrds.get_sorted_hostnames(ips)
 

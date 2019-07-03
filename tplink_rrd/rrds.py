@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from . import colorutil
 
@@ -10,6 +9,8 @@ def ellipsize(s, length):
 
 
 class BandwidthRrdTool:
+    rrds_path = Path("rrds")
+
     starts = [
         3000,
         21000,
@@ -21,10 +22,10 @@ class BandwidthRrdTool:
         self.rrdtool = rrdtool
 
     def hostname_rrd(self, hostname):
-        rrd = f"rrds/{hostname}.rrd"
+        rrd = self.rrds_path / f"{hostname}.rrd"
 
-        if not os.path.isfile(rrd):
-            os.makedirs("rrds", exist_ok=True)
+        if not rrd.is_file():
+            self.rrds_path.mkdir(exist_ok=True)
 
             self.rrdtool.create(
                 rrd,
@@ -43,13 +44,13 @@ class BandwidthRrdTool:
 
         return rrd
 
-    @staticmethod
-    def get_sorted_hostnames(ips):
+    @classmethod
+    def get_sorted_hostnames(cls, ips):
         def key(hostname):
             ip = ips.get(hostname)
             return (ip is None, ip if ip else hostname)  # None-s last
 
-        return sorted((rrdpath.stem for rrdpath in Path("rrds").glob("*.rrd")), key=key)
+        return sorted((rrdpath.stem for rrdpath in cls.rrds_path.glob("*.rrd")), key=key)
 
     def update(self, hostname, bytes):
         rrd = self.hostname_rrd(hostname)
