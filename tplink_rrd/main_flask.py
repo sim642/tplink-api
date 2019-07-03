@@ -44,12 +44,7 @@ def tplink_thread():
 
 
 def get_sorted_hostnames():
-    sorted_hostnames = []
-    for entry in sorted(stats, key=lambda entry: entry.ip):
-        hostname = hostnames.get(entry.ip)
-        if hostname:
-            sorted_hostnames.append(hostname)
-    return sorted_hostnames
+    return rrds.get_sorted_hostnames(hostnames, stats)
 
 
 t = threading.Thread(target=tplink_thread, daemon=True)

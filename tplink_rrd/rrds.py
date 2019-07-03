@@ -42,6 +42,15 @@ class BandwidthRrdTool:
 
         return rrd
 
+    @staticmethod
+    def get_sorted_hostnames(hostnames, stats):
+        sorted_hostnames = []
+        for entry in sorted(stats, key=lambda entry: entry.ip):
+            hostname = hostnames.get(entry.ip)
+            if hostname:
+                sorted_hostnames.append(hostname)
+        return sorted_hostnames
+
     def update(self, hostname, bytes):
         rrd = self.hostname_rrd(hostname)
         self.rrdtool.update(rrd, f"N:{bytes}")

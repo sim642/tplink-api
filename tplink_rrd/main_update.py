@@ -29,17 +29,8 @@ def graph_rrd(hostname, entry):
         )
 
 
-def get_sorted_hostnames(hostnames, stats):
-    sorted_hostnames = []
-    for entry in sorted(stats, key=lambda entry: entry.ip):
-        hostname = hostnames.get(entry.ip)
-        if hostname:
-            sorted_hostnames.append(hostname)
-    return sorted_hostnames
-
-
 def graph_rrd_stack(hostnames, stats):
-    sorted_hostnames = get_sorted_hostnames(hostnames, stats)
+    sorted_hostnames = rrds.get_sorted_hostnames(hostnames, stats)
     for start in rrds.starts:
         graph_filename = f"graphs/stack-{start}.png"
         rrdtool.graph_file(
@@ -49,7 +40,7 @@ def graph_rrd_stack(hostnames, stats):
 
 
 def graphs_index(hostnames, stats):
-    sorted_hostnames = get_sorted_hostnames(hostnames, stats)
+    sorted_hostnames = rrds.get_sorted_hostnames(hostnames, stats)
     template = jinja2_env.get_template("graphs-static.html")
     template.stream(sorted_hostnames=sorted_hostnames, starts=rrds.starts).dump("graphs/index.html")
 
