@@ -8,6 +8,7 @@ from tplink import TpLinkApi
 from . import rrdtool_wrapper
 from . import rrds
 from jinja2 import Environment, PackageLoader
+import timeit
 
 dotenv.load_dotenv()
 
@@ -57,7 +58,16 @@ if generate_static:
     os.makedirs("graphs", exist_ok=True)
 
 
+last_run_time = None
+
+
 def run():
+    global last_run_time
+    run_time = timeit.default_timer()
+    if last_run_time:
+        print(f"run time delta: {run_time - last_run_time} s")
+    last_run_time = run_time
+
     stats = tplink.get_stats(5)  # TODO: longer interval here too?
     dhcp = tplink.get_dhcp()
     hostnames = {entry.ip: entry.hostname for entry in dhcp}
