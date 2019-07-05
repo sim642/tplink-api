@@ -74,12 +74,12 @@ class BandwidthRrdTool:
             "VDEF:totallastbits=avgbits,LAST",
             "AREA:avgbits#00FF00:Average",
             # "GPRINT:totalavgbits:Average\\: %.1lf %sbps",
-            "GPRINT:totalavgbits:%.1lf %sbps",
+            "GPRINT:totalavgbits:%6.1lf %sbps",
             "LINE0.5:maxbits#FF0000:Max",
             # "GPRINT:totalmaxbits:Max\\: %.1lf %sbps",
-            "GPRINT:totalmaxbits:%.1lf %sbps",
+            "GPRINT:totalmaxbits:%6.1lf %sbps",
             "COMMENT:Current",
-            "GPRINT:totallastbits:%.1lf %sbps\\n",
+            "GPRINT:totallastbits:%6.1lf %sbps\\n",
         ]
 
 
