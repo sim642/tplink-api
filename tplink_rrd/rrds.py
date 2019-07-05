@@ -1,7 +1,7 @@
 from pathlib import Path
 from . import colorutil
 
-HOSTNAME_WIDTH = 16
+HOSTNAME_WIDTH = 12
 
 
 def ellipsize(s, length):
@@ -69,16 +69,19 @@ class BandwidthRrdTool:
             f"DEF:maxbytes={rrd}:bytes:MAX",
             "CDEF:avgbits=avgbytes,8,*",
             "CDEF:maxbits=maxbytes,8,*",
+            "VDEF:totalsumbytes=avgbytes,TOTAL",
             "VDEF:totalavgbits=avgbits,AVERAGE",
             "VDEF:totalmaxbits=maxbits,MAXIMUM",
             "VDEF:totallastbits=avgbits,LAST",
-            "AREA:avgbits#00FF00:Average",
-            # "GPRINT:totalavgbits:Average\\: %.1lf %sbps",
+            f"COMMENT:{'': <{HOSTNAME_WIDTH + 2}}",
+            "COMMENT:   Sum    ",
+            "AREA:avgbits#00FF00:Average    ",
+            "LINE0.5:maxbits#FF0000:Max   ",
+            "COMMENT:  Current  \\n",
+            f"COMMENT:{'': <{HOSTNAME_WIDTH + 2}}",
+            "GPRINT:totalsumbytes:%6.1lf %sB",
             "GPRINT:totalavgbits:%6.1lf %sbps",
-            "LINE0.5:maxbits#FF0000:Max",
-            # "GPRINT:totalmaxbits:Max\\: %.1lf %sbps",
             "GPRINT:totalmaxbits:%6.1lf %sbps",
-            "COMMENT:Current",
             "GPRINT:totallastbits:%6.1lf %sbps\\n",
         ]
 
@@ -94,15 +97,15 @@ class BandwidthRrdTool:
                 f"DEF:maxbytes{j}={rrd}:bytes:MAX",
                 f"CDEF:avgbits{j}=avgbytes{j},8,*",
                 f"CDEF:maxbits{j}=maxbytes{j},8,*",
+                f"VDEF:totalsumbytes{j}=avgbytes{j},TOTAL",
                 f"VDEF:totalavgbits{j}=avgbits{j},AVERAGE",
                 f"VDEF:totalmaxbits{j}=maxbits{j},MAXIMUM",
                 f"VDEF:totallastbits{j}=avgbits{j},LAST",
                 f"AREA:avgbits{j}{color}:{ellipsized_hostname: <{HOSTNAME_WIDTH}}:STACK",
-                # f"GPRINT:totalavgbits{j}:Average\\: %5.1lf %sbps",
-                # f"GPRINT:totallastbits{j}:Current\\: %5.1lf %sbps\\n",
-                f"GPRINT:totalavgbits{j}:%7.1lf %sbps",
-                f"GPRINT:totalmaxbits{j}:%7.1lf %sbps",
-                f"GPRINT:totallastbits{j}:%7.1lf %sbps\\n",
+                f"GPRINT:totalsumbytes{j}:%6.1lf %sB",
+                f"GPRINT:totalavgbits{j}:%6.1lf %sbps",
+                f"GPRINT:totalmaxbits{j}:%6.1lf %sbps",
+                f"GPRINT:totallastbits{j}:%6.1lf %sbps\\n",
             ]
 
         return [
@@ -113,7 +116,8 @@ class BandwidthRrdTool:
             "--slope-mode",
             "--height", "150",  # default is 100
             f"COMMENT:{'': <{HOSTNAME_WIDTH + 2}}",
-            f"COMMENT:{'Average': ^12}",
-            f"COMMENT:{'Max': ^12}",
-            f"COMMENT:{'Current': ^12}\\n",
+            f"COMMENT:{'Sum': ^9}",
+            f"COMMENT:{'Average': ^11}",
+            f"COMMENT:{'Max': ^11}",
+            f"COMMENT:{'Current': ^11}\\n",
         ] + args
