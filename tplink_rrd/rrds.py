@@ -15,7 +15,7 @@ class BandwidthRrdTool:
         3000,
         21000,
         93000,
-        # 1147680,
+        1147680,
     ]
 
     def __init__(self, rrdtool) -> None:
