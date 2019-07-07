@@ -10,18 +10,24 @@ def exprify(arg):
         raise RuntimeError("Unsupported expression")
 
 
-fresh_i = 0
 
+class RefState:
+    defs: List["Graphable"]
+    expr_vars: Dict["Expr", str]
 
-def fresh_var():
-    global fresh_i
-    var = f"var{fresh_i}"
-    fresh_i += 1
-    return var
+    def __init__(self) -> None:
+        self.fresh_i = 0
+        self.defs = []
+        self.expr_vars = {}
+
+    def fresh_var(self):
+        var = f"var{self.fresh_i}"
+        self.fresh_i += 1
+        return var
 
 
 class Expr:
-    def refd(self, force: bool, defs: List["Graphable"], expr_vars: Dict["Expr", str]) -> "Expr":
+    def refd(self, force: bool, ref_state: RefState) -> "Expr":
         raise RuntimeError("Abstract")
 
     def __mul__(self, other) -> "Expr":
@@ -40,13 +46,13 @@ class Rrd(Expr):
     def __repr__(self) -> str:
         return f"Rrd({self.rrd}, {self.name}, {self.cf})"
 
-    def refd(self, force: bool, defs: List["Graphable"], expr_vars: Dict["Expr", str]) -> "Expr":
-        if self in expr_vars:
-            var = expr_vars[self]
+    def refd(self, force: bool, ref_state: RefState) -> "Expr":
+        if self in ref_state.expr_vars:
+            var = ref_state.expr_vars[self]
         else:
-            var = fresh_var()
-            defs.append(Def(var, self))
-            expr_vars[self] = var
+            var = ref_state.fresh_var()
+            ref_state.defs.append(Def(var, self))
+            ref_state.expr_vars[self] = var
         return Ref(var)
 
 
@@ -60,14 +66,14 @@ class Aggregate(Expr):
     def __repr__(self):
         return f"Aggregate({self.expr}, {self.op})"
 
-    def refd(self, force: bool, defs: List["Graphable"], expr_vars: Dict["Expr", str]) -> "Expr":
-        expr_refd = self.expr.refd(True, defs, expr_vars)
-        if self in expr_vars:
-            var = expr_vars[self]
+    def refd(self, force: bool, ref_state: RefState) -> "Expr":
+        expr_refd = self.expr.refd(True, ref_state)
+        if self in ref_state.expr_vars:
+            var = ref_state.expr_vars[self]
         else:
-            var = fresh_var()
-            defs.append(VDef(var, Aggregate(expr_refd, self.op)))
-            expr_vars[self] = var
+            var = ref_state.fresh_var()
+            ref_state.defs.append(VDef(var, Aggregate(expr_refd, self.op)))
+            ref_state.expr_vars[self] = var
         return Ref(var)
 
 
@@ -78,14 +84,14 @@ class Const(Expr):
     def __repr__(self) -> str:
         return f"Const({self.value})"
 
-    def refd(self, force: bool, defs: List["Graphable"], expr_vars: Dict["Expr", str]) -> "Expr":
+    def refd(self, force: bool, ref_state: RefState) -> "Expr":
         if force:
-            if self in expr_vars:
-                var = expr_vars[self]
+            if self in ref_state.expr_vars:
+                var = ref_state.expr_vars[self]
             else:
-                var = fresh_var()
-                defs.append(VDef(var, self))
-                expr_vars[self] = var
+                var = ref_state.fresh_var()
+                ref_state.defs.append(VDef(var, self))
+                ref_state.expr_vars[self] = var
             return Ref(var)
         else:
             return self
@@ -102,16 +108,16 @@ class Mul(Expr):
     def __repr__(self) -> str:
         return f"Mul({self.left}, {self.right})"
 
-    def refd(self, force: bool, defs: List["Graphable"], expr_vars: Dict["Expr", str]) -> "Expr":
-        left_refd = self.left.refd(False, defs, expr_vars)
-        right_refd = self.right.refd(False, defs, expr_vars)
+    def refd(self, force: bool, ref_state: RefState) -> "Expr":
+        left_refd = self.left.refd(False, ref_state)
+        right_refd = self.right.refd(False, ref_state)
         if force:
-            if self in expr_vars:
-                var = expr_vars[self]
+            if self in ref_state.expr_vars:
+                var = ref_state.expr_vars[self]
             else:
-                var = fresh_var()
-                defs.append(CDef(var, Mul(left_refd, right_refd)))
-                expr_vars[self] = var
+                var = ref_state.fresh_var()
+                ref_state.defs.append(CDef(var, Mul(left_refd, right_refd)))
+                ref_state.expr_vars[self] = var
             return Ref(var)
         else:
             return Mul(left_refd, right_refd)
@@ -124,12 +130,12 @@ class Ref(Expr):
     def __repr__(self) -> str:
         return f"Ref({self.var})"
 
-    def refd(self, force: bool, defs: List["Graphable"], expr_vars: Dict["Expr", str]) -> "Expr":
+    def refd(self, force: bool, ref_state: RefState) -> "Expr":
         return self
 
 
 class Graphable:
-    def refd(self, defs: List["Graphable"], expr_vars: Dict["Expr", str]) -> "Graphable":
+    def refd(self, ref_state: RefState) -> "Graphable":
         raise RuntimeError("Abstract")
 
 
@@ -139,7 +145,7 @@ class DefGraphable(Graphable):
     def __init__(self, var: str) -> None:
         self.var = var
 
-    def refd(self, defs: List["Graphable"], expr_vars: Dict["Expr", str]) -> "Graphable":
+    def refd(self, ref_state: RefState) -> "Graphable":
         return self
 
 
@@ -183,7 +189,7 @@ class Comment(Graphable):
     def __repr__(self) -> str:
         return f"Comment({self.text})"
 
-    def refd(self, defs: List["Graphable"], expr_vars: Dict["Expr", str]) -> "Graphable":
+    def refd(self, ref_state: RefState) -> "Graphable":
         return self
 
 
@@ -197,8 +203,8 @@ class GPrint(Graphable):
     def __repr__(self) -> str:
         return f"GPrint({self.expr}, {self.format})"
 
-    def refd(self, defs: List["Graphable"], expr_vars: Dict["Expr", str]) -> "Graphable":
-        expr_refd = self.expr.refd(True, defs, expr_vars)
+    def refd(self, ref_state: RefState) -> "Graphable":
+        expr_refd = self.expr.refd(True, ref_state)
         return GPrint(expr_refd, self.format)
 
 
@@ -213,19 +219,18 @@ class Area(Graphable):
     def __repr__(self) -> str:
         return f"Area({self.expr}, {self.color}, {self.legend})"
 
-    def refd(self, defs: List["Graphable"], expr_vars: Dict["Expr", str]) -> "Graphable":
-        expr_refd = self.expr.refd(True, defs, expr_vars)
+    def refd(self, ref_state: RefState) -> "Graphable":
+        expr_refd = self.expr.refd(True, ref_state)
         return Area(expr_refd, self.color, self.legend)
 
 
 def outline(graphables: List[Graphable]) -> List[Graphable]:
-    defs = []
-    expr_vars = {}
+    ref_state = RefState()
     ref_graphables = []
     for graphable in graphables:
-        graphable_refd = graphable.refd(defs, expr_vars)
+        graphable_refd = graphable.refd(ref_state)
         ref_graphables.append(graphable_refd)
-    return defs + ref_graphables
+    return ref_state.defs + ref_graphables
 
 
 if __name__ == '__main__':
