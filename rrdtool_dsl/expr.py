@@ -51,11 +51,13 @@ class Expr:
     def to_rpn(self) -> List[str]:
         raise NotImplementedError
 
+    # TODO: add other operators
+
     def __mul__(self, other) -> "Expr":
-        return Mul(self, to_expr(other))
+        return Binary(self, "*", to_expr(other))
 
     def __rmul__(self, other) -> "Expr":
-        return Mul(to_expr(other), self)
+        return Binary(to_expr(other), "*", self)
 
 
 class Rrd(Expr):
@@ -116,16 +118,17 @@ class Const(Expr):
         return [str(self.value)]
 
 
-class Mul(Expr):
+class Binary(Expr):
     left: Expr
     right: Expr
 
-    def __init__(self, left: Expr, right: Expr) -> None:
+    def __init__(self, left: Expr, op, right: Expr) -> None:
         self.left = left
+        self.op = op
         self.right = right
 
     def __repr__(self) -> str:
-        return f"Mul({self.left}, {self.right})"
+        return f"Binary({self.left}, {self.op}, {self.right})"
 
     def to_def(self, var) -> "Def":
         return CDef(var, self)
@@ -133,10 +136,10 @@ class Mul(Expr):
     def to_ref_inner(self, state: ToRefState) -> "Expr":
         left_ref = self.left.to_ref(False, state)
         right_ref = self.right.to_ref(False, state)
-        return Mul(left_ref, right_ref)
+        return Binary(left_ref, self.op, right_ref)
 
     def to_rpn(self) -> List[str]:
-        return self.left.to_rpn() + self.right.to_rpn() + ["*"]
+        return self.left.to_rpn() + self.right.to_rpn() + [self.op]
 
 
 class Ref(Expr):
