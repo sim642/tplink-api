@@ -50,6 +50,9 @@ class Expr:
     def to_ref_inner(self, state: ToRefState) -> "Expr":
         raise NotImplementedError
 
+    def to_rpn(self) -> List[str]:
+        raise NotImplementedError
+
     def __mul__(self, other) -> "Expr":
         return Mul(self, to_expr(other))
 
@@ -98,6 +101,9 @@ class Aggregate(Expr):
         expr_ref = self.expr.to_ref(True, state)
         return Aggregate(expr_ref, self.op)
 
+    def to_rpn(self) -> List[str]:
+        return self.expr.to_rpn() + [self.op]
+
 
 class Const(Expr):
     def __init__(self, value) -> None:
@@ -111,6 +117,9 @@ class Const(Expr):
 
     def to_ref_inner(self, state: ToRefState) -> "Expr":
         return self
+
+    def to_rpn(self) -> List[str]:
+        return [str(self.value)]
 
 
 class Mul(Expr):
@@ -132,6 +141,9 @@ class Mul(Expr):
         right_ref = self.right.to_ref(False, state)
         return Mul(left_ref, right_ref)
 
+    def to_rpn(self) -> List[str]:
+        return self.left.to_rpn() + self.right.to_rpn() + ["*"]
+
 
 class Ref(Expr):
     def __init__(self, var) -> None:
@@ -142,6 +154,16 @@ class Ref(Expr):
 
     def to_ref_inner(self, state: ToRefState) -> "Expr":
         return self
+
+    def to_rpn(self) -> List[str]:
+        return [self.var]
+
+
+def as_ref(expr: Expr) -> Ref:
+    if isinstance(expr, Ref):
+        return expr
+    else:
+        raise RuntimeError("Not a ref")
 
 
 class Graphable:
@@ -169,6 +191,9 @@ class Def(DefGraphable):
     def __repr__(self) -> str:
         return f"Def({self.var}, {self.rrd})"
 
+    def __str__(self) -> str:
+        return f"DEF:{self.var}={self.rrd.rrd}:{self.rrd.name}:{self.rrd.cf}"
+
 
 class CDef(DefGraphable):
     expr: Expr
@@ -179,6 +204,9 @@ class CDef(DefGraphable):
 
     def __repr__(self) -> str:
         return f"CDef({self.var}, {self.expr})"
+
+    def __str__(self) -> str:
+        return f"CDEF:{self.var}={','.join(self.expr.to_rpn())}"
 
 
 class VDef(DefGraphable):
@@ -191,6 +219,9 @@ class VDef(DefGraphable):
     def __repr__(self) -> str:
         return f"VDef({self.var}, {self.aggregate})"
 
+    def __str__(self) -> str:
+        return f"VDEF:{self.var}={','.join(self.aggregate.to_rpn())}"
+
 
 class Comment(Graphable):
     def __init__(self, text) -> None:
@@ -201,6 +232,9 @@ class Comment(Graphable):
 
     def to_ref(self, state: ToRefState) -> "Graphable":
         return self
+
+    def __str__(self) -> str:
+        return f"COMMENT:{self.text}"
 
 
 class GPrint(Graphable):
@@ -217,6 +251,9 @@ class GPrint(Graphable):
         expr_ref = self.expr.to_ref(True, state)
         return GPrint(expr_ref, self.format)
 
+    def __str__(self) -> str:
+        return f"GPRINT:{as_ref(self.expr).var}:{self.format}"
+
 
 class Area(Graphable):
     expr: Expr
@@ -232,6 +269,9 @@ class Area(Graphable):
     def to_ref(self, state: ToRefState) -> "Graphable":
         expr_ref = self.expr.to_ref(True, state)
         return Area(expr_ref, self.color, self.legend)
+
+    def __str__(self) -> str:
+        return f"AREA:{as_ref(self.expr).var}#{self.color}:{self.legend}"
 
 
 def outline(graphables: List[Graphable]) -> List[Graphable]:
