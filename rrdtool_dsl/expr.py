@@ -30,13 +30,11 @@ class Expr:
     def to_def(self, var) -> "Def":
         raise NotImplementedError
 
-    @classmethod
-    def always_force_to_ref(cls) -> bool:
-        return False
+    always_force_to_ref = False
 
     def to_ref(self, force: bool, state: ToRefState) -> "Expr":
         self_ref = self.to_ref_inner(state)
-        if (force or self.always_force_to_ref()) and not isinstance(self_ref, Ref):
+        if (force or self.always_force_to_ref) and not isinstance(self_ref, Ref):
             if self in state.expr_vars:
                 var = state.expr_vars[self]
             else:
@@ -72,9 +70,7 @@ class Rrd(Expr):
     def to_def(self, var) -> "Def":
         return Def(var, self)
 
-    @classmethod
-    def always_force_to_ref(cls) -> bool:
-        return True
+    always_force_to_ref = True
 
     def to_ref_inner(self, state: ToRefState) -> "Expr":
         return self
@@ -93,9 +89,7 @@ class Aggregate(Expr):
     def to_def(self, var) -> "Def":
         return VDef(var, self)
 
-    @classmethod
-    def always_force_to_ref(cls) -> bool:
-        return True
+    always_force_to_ref = True
 
     def to_ref_inner(self, state: ToRefState) -> "Expr":
         expr_ref = self.expr.to_ref(True, state)
