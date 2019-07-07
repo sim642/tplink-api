@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict
 
 
-def exprify(arg):
+def to_expr(arg):
     if isinstance(arg, Expr):
         return arg
     elif isinstance(arg, int):
@@ -11,7 +11,7 @@ def exprify(arg):
 
 
 
-class RefState:
+class ToRefState:
     defs: List["Graphable"]
     expr_vars: Dict["Expr", str]
 
@@ -27,14 +27,34 @@ class RefState:
 
 
 class Expr:
-    def refd(self, force: bool, ref_state: RefState) -> "Expr":
-        raise RuntimeError("Abstract")
+    def to_def(self, var) -> "Def":
+        raise NotImplementedError
+
+    @classmethod
+    def always_force_to_ref(cls) -> bool:
+        return False
+
+    def to_ref(self, force: bool, state: ToRefState) -> "Expr":
+        self_ref = self.to_ref_inner(state)
+        if (force or self.always_force_to_ref()) and not isinstance(self_ref, Ref):
+            if self in state.expr_vars:
+                var = state.expr_vars[self]
+            else:
+                var = state.fresh_var()
+                state.defs.append(self_ref.to_def(var))
+                state.expr_vars[self] = var
+            return Ref(var)
+        else:
+            return self_ref
+
+    def to_ref_inner(self, state: ToRefState) -> "Expr":
+        raise NotImplementedError
 
     def __mul__(self, other) -> "Expr":
-        return Mul(self, exprify(other))
+        return Mul(self, to_expr(other))
 
     def __rmul__(self, other) -> "Expr":
-        return Mul(exprify(other), self)
+        return Mul(to_expr(other), self)
 
 
 class Rrd(Expr):
@@ -46,14 +66,15 @@ class Rrd(Expr):
     def __repr__(self) -> str:
         return f"Rrd({self.rrd}, {self.name}, {self.cf})"
 
-    def refd(self, force: bool, ref_state: RefState) -> "Expr":
-        if self in ref_state.expr_vars:
-            var = ref_state.expr_vars[self]
-        else:
-            var = ref_state.fresh_var()
-            ref_state.defs.append(Def(var, self))
-            ref_state.expr_vars[self] = var
-        return Ref(var)
+    def to_def(self, var) -> "Def":
+        return Def(var, self)
+
+    @classmethod
+    def always_force_to_ref(cls) -> bool:
+        return True
+
+    def to_ref_inner(self, state: ToRefState) -> "Expr":
+        return self
 
 
 class Aggregate(Expr):
@@ -66,15 +87,16 @@ class Aggregate(Expr):
     def __repr__(self):
         return f"Aggregate({self.expr}, {self.op})"
 
-    def refd(self, force: bool, ref_state: RefState) -> "Expr":
-        expr_refd = self.expr.refd(True, ref_state)
-        if self in ref_state.expr_vars:
-            var = ref_state.expr_vars[self]
-        else:
-            var = ref_state.fresh_var()
-            ref_state.defs.append(VDef(var, Aggregate(expr_refd, self.op)))
-            ref_state.expr_vars[self] = var
-        return Ref(var)
+    def to_def(self, var) -> "Def":
+        return VDef(var, self)
+
+    @classmethod
+    def always_force_to_ref(cls) -> bool:
+        return True
+
+    def to_ref_inner(self, state: ToRefState) -> "Expr":
+        expr_ref = self.expr.to_ref(True, state)
+        return Aggregate(expr_ref, self.op)
 
 
 class Const(Expr):
@@ -84,17 +106,11 @@ class Const(Expr):
     def __repr__(self) -> str:
         return f"Const({self.value})"
 
-    def refd(self, force: bool, ref_state: RefState) -> "Expr":
-        if force:
-            if self in ref_state.expr_vars:
-                var = ref_state.expr_vars[self]
-            else:
-                var = ref_state.fresh_var()
-                ref_state.defs.append(VDef(var, self))
-                ref_state.expr_vars[self] = var
-            return Ref(var)
-        else:
-            return self
+    def to_def(self, var) -> "Def":
+        return VDef(var, self)
+
+    def to_ref_inner(self, state: ToRefState) -> "Expr":
+        return self
 
 
 class Mul(Expr):
@@ -108,19 +124,13 @@ class Mul(Expr):
     def __repr__(self) -> str:
         return f"Mul({self.left}, {self.right})"
 
-    def refd(self, force: bool, ref_state: RefState) -> "Expr":
-        left_refd = self.left.refd(False, ref_state)
-        right_refd = self.right.refd(False, ref_state)
-        if force:
-            if self in ref_state.expr_vars:
-                var = ref_state.expr_vars[self]
-            else:
-                var = ref_state.fresh_var()
-                ref_state.defs.append(CDef(var, Mul(left_refd, right_refd)))
-                ref_state.expr_vars[self] = var
-            return Ref(var)
-        else:
-            return Mul(left_refd, right_refd)
+    def to_def(self, var) -> "Def":
+        return CDef(var, self)
+
+    def to_ref_inner(self, state: ToRefState) -> "Expr":
+        left_ref = self.left.to_ref(False, state)
+        right_ref = self.right.to_ref(False, state)
+        return Mul(left_ref, right_ref)
 
 
 class Ref(Expr):
@@ -130,13 +140,13 @@ class Ref(Expr):
     def __repr__(self) -> str:
         return f"Ref({self.var})"
 
-    def refd(self, force: bool, ref_state: RefState) -> "Expr":
+    def to_ref_inner(self, state: ToRefState) -> "Expr":
         return self
 
 
 class Graphable:
-    def refd(self, ref_state: RefState) -> "Graphable":
-        raise RuntimeError("Abstract")
+    def to_ref(self, state: ToRefState) -> "Graphable":
+        raise NotImplementedError
 
 
 class DefGraphable(Graphable):
@@ -145,7 +155,7 @@ class DefGraphable(Graphable):
     def __init__(self, var: str) -> None:
         self.var = var
 
-    def refd(self, ref_state: RefState) -> "Graphable":
+    def to_ref(self, state: ToRefState) -> "Graphable":
         return self
 
 
@@ -189,7 +199,7 @@ class Comment(Graphable):
     def __repr__(self) -> str:
         return f"Comment({self.text})"
 
-    def refd(self, ref_state: RefState) -> "Graphable":
+    def to_ref(self, state: ToRefState) -> "Graphable":
         return self
 
 
@@ -203,9 +213,9 @@ class GPrint(Graphable):
     def __repr__(self) -> str:
         return f"GPrint({self.expr}, {self.format})"
 
-    def refd(self, ref_state: RefState) -> "Graphable":
-        expr_refd = self.expr.refd(True, ref_state)
-        return GPrint(expr_refd, self.format)
+    def to_ref(self, state: ToRefState) -> "Graphable":
+        expr_ref = self.expr.to_ref(True, state)
+        return GPrint(expr_ref, self.format)
 
 
 class Area(Graphable):
@@ -219,18 +229,17 @@ class Area(Graphable):
     def __repr__(self) -> str:
         return f"Area({self.expr}, {self.color}, {self.legend})"
 
-    def refd(self, ref_state: RefState) -> "Graphable":
-        expr_refd = self.expr.refd(True, ref_state)
-        return Area(expr_refd, self.color, self.legend)
+    def to_ref(self, state: ToRefState) -> "Graphable":
+        expr_ref = self.expr.to_ref(True, state)
+        return Area(expr_ref, self.color, self.legend)
 
 
 def outline(graphables: List[Graphable]) -> List[Graphable]:
-    ref_state = RefState()
+    to_ref_state = ToRefState()
     ref_graphables = []
     for graphable in graphables:
-        graphable_refd = graphable.refd(ref_state)
-        ref_graphables.append(graphable_refd)
-    return ref_state.defs + ref_graphables
+        ref_graphables.append(graphable.to_ref(to_ref_state))
+    return to_ref_state.defs + ref_graphables
 
 
 if __name__ == '__main__':
