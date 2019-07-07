@@ -271,6 +271,26 @@ class Area(Graphable):
         return f"AREA:{as_ref(self.expr).var}#{self.color}:{self.legend}"
 
 
+class Line(Graphable):
+    expr: Expr
+
+    def __init__(self, expr: Expr, width, color, legend) -> None:
+        self.expr = expr
+        self.width = width
+        self.color = color
+        self.legend = legend
+
+    def __repr__(self) -> str:
+        return f"Line({self.expr}, {self.width}, {self.color}, {self.legend})"
+
+    def to_ref(self, state: ToRefState) -> "Graphable":
+        expr_ref = self.expr.to_ref(True, state)
+        return Line(expr_ref, self.width, self.color, self.legend)
+
+    def __str__(self) -> str:
+        return f"LINE{self.width}:{as_ref(self.expr).var}#{self.color}:{self.legend}"
+
+
 def outline(graphables: List[Graphable]) -> List[Graphable]:
     to_ref_state = ToRefState()
     ref_graphables = []
@@ -280,13 +300,28 @@ def outline(graphables: List[Graphable]) -> List[Graphable]:
 
 
 if __name__ == '__main__':
-    avgbytes = Rrd("thing.rrd", "bytes", "AVERAGE")
+    rrd = "thing.rrd"
+    avgbytes = Rrd(rrd, "bytes", "AVERAGE")
+    maxbytes = Rrd(rrd, "bytes", "MAX")
     avgbits = avgbytes * 8
+    maxbits = maxbytes * 8
+    totalsumbytes = Aggregate(avgbytes, "TOTAL")
     totalavgbits = Aggregate(avgbits, "AVERAGE")
+    totalmaxbits = Aggregate(maxbits, "MAXIMUM")
+    totallastbits = Aggregate(avgbits, "LAST")
 
+    HOSTNAME_WIDTH = 12
     graphables = [
-        Area(avgbits, "00FF00", "Average"),
-        GPrint(totalavgbits, "%6.1lf %sbps")
+        Comment(f"{'': <{HOSTNAME_WIDTH + 2}}"),
+        Comment("   Sum    "),
+        Area(avgbits, "00FF00", "Average    "),
+        Line(maxbits, 0.5, "FF0000", "Max   "),
+        Comment("  Current  \\n"),
+        Comment(f"{'': <{HOSTNAME_WIDTH + 2}}"),
+        GPrint(totalsumbytes, "%6.1lf %sB"),
+        GPrint(totalavgbits, "%6.1lf %sbps"),
+        GPrint(totalmaxbits, "%6.1lf %sbps"),
+        GPrint(totallastbits, "%6.1lf %sbps\\n"),
     ]
 
     for arg in outline(graphables):
