@@ -54,8 +54,13 @@ The following is a list of notes and resources related to reverse engineering of
     * https://labs.withsecure.com/advisories/tp-link-ac1750-pwn2own-2019
   * Implementations:
     * https://github.com/ropbear/tmpcli
-* TDDP API?
-  * https://mjg59.dreamwidth.org/51672.html 
+* TDDP API:
+  * https://mjg59.dreamwidth.org/51672.html
+  * https://medium.com/@CoreSecurity/a-story-about-tp-link-device-debug-protocol-tddp-research-4fbdd7a15c40
+  * https://www.softscheck.com/en/blog/tp-link-reverse-engineering/
+  * https://patents.google.com/patent/CN102096654A/en
+  * Implementations:
+    * https://github.com/softScheck/tplink-smartplug
 * Reverse engineering:
   * https://skowronski.tech/2021/02/hacking-into-tp-link-archer-c6-shell-access-without-physical-disassembly/
   * https://github.com/hacefresko/TP-Link-Archer-C6-EU-re
