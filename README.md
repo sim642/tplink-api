@@ -30,6 +30,8 @@ The following is a list of notes and resources related to reverse engineering of
     * https://github.com/AlexandrErohin/TP-Link-Archer-C6U (`TPLinkMRClient`)
     * Home-assistant integration: https://github.com/ericpignet/home-assistant-tplink_router/tree/master
     * https://github.com/hertzg/node-tplink-api
+    * https://github.com/plewin/tp-link-modem-router
+    * https://github.com/hercule115/TPLink-Archer
 * `luci` API:
   * HTTP access via web interface
   * Custom auth with RSA and cookies
@@ -38,6 +40,22 @@ The following is a list of notes and resources related to reverse engineering of
   * Implementations:
     * https://github.com/AlexandrErohin/TP-Link-Archer-C6U
       * Home-assistant integration: https://github.com/AlexandrErohin/home-assistant-tplink-router
+* TMP API:
+  * TP-Link Tether 2.0 protocol for mobile app
+  * Multiple transports (SSH, BLE, ATA) according to Android app decompile
+    * SSH:
+      * User: `dropbear`, password: `admin`/own password (for web interface)
+      * No `shell` channel
+      * Android app uses `exec` channel for `scp`
+      * Port forward 20002 to access TMP
+  * Versions 1, 2, 3 according to Android app decompile 
+  * Reverse engineering:
+    * https://www.zerodayinitiative.com/blog/2020/4/6/exploiting-the-tp-link-archer-c7-at-pwn2own-tokyo
+    * https://labs.withsecure.com/advisories/tp-link-ac1750-pwn2own-2019
+  * Implementations:
+    * https://github.com/ropbear/tmpcli
+* TDDP API?
+  * https://mjg59.dreamwidth.org/51672.html 
 * Reverse engineering:
   * https://skowronski.tech/2021/02/hacking-into-tp-link-archer-c6-shell-access-without-physical-disassembly/
-  * https://github.com/hacefresko/TP-Link-Archer-C6-EU-re 
+  * https://github.com/hacefresko/TP-Link-Archer-C6-EU-re
